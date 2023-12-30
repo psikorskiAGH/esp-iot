@@ -3,6 +3,7 @@
 
 #include "../global/includes.h"
 #include "device.h"
+#include "config_response.h"
 
 namespace device
 {
@@ -18,14 +19,14 @@ namespace device
 
         api::Response *GET();
     };
-
+    
     class DeviceConfig : public api::Path
     {
         Device *parent;
-
+        
     public:
-        DeviceConfig(Device *parent) : api::Path(std::move("config")), parent(parent) {}
-        ~DeviceConfig(){};
+        DeviceConfig(Device *parent) : api::Path(std::move("config")), parent(parent) {};
+        inline ~DeviceConfig() {};
 
         api::Response *GET();
         api::Response *POST(rapidjson::Value const &data);

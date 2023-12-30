@@ -51,8 +51,7 @@ namespace oscilloscope
 
         /// @brief
         /// @return did run start successfully
-        bool run_once();
-        bool run_trigger();
+        bool run();
 
         /// @brief Waits for current run to finish. Works like a semaphore. Does not stop work if timeout happens.
         /// @param timeout timeout parameter to xSemaphoreTake()

@@ -48,7 +48,7 @@
 
 #define WIFI_STATION_SSID           "T-Mobile_Swiatlowod_3904"
 #define WIFI_STATION_PASS           "20162060198057175682"
-#define WIFI_STATION_MAXIMUM_RETRY  5
+#define WIFI_STATION_MAXIMUM_RETRY  999
 #define WIFI_STATION_SAE_MODE       WPA3_SAE_PWE_BOTH
 #define WIFI_STATION_H2E_IDENTIFIER "My_H2E_Id"
 #define WIFI_STATION_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_WPA3_PSK
@@ -131,11 +131,39 @@ void wifi_init_sta(void)
              * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
              * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
              */
+            .scan_method = WIFI_FAST_SCAN,
+            .bssid_set = 0,
+            .bssid = {0},
+            .channel = 0,
+            .listen_interval = 0,
+            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
             .threshold = {
                 .rssi = WIFI_STATION_RSSI_THRESHOLD,
                 .authmode = WIFI_STATION_AUTH_MODE_THRESHOLD,
             },
+            .pmf_cfg = {
+                .capable = true,
+                .required = false,
+            },
+            .rm_enabled = 0,
+            .btm_enabled = 0,
+            .mbo_enabled = 0,
+            .ft_enabled = 0,
+            .owe_enabled = 0,
+            .transition_disable = 0,
+            .reserved = 0,
             .sae_pwe_h2e = WIFI_STATION_SAE_MODE,
+            .sae_pk_mode = WPA3_SAE_PK_MODE_AUTOMATIC,
+            .failure_retry_cnt = 3,
+            .he_dcm_set = 0,
+            .he_dcm_max_constellation_tx = 0,
+            .he_dcm_max_constellation_rx = 0,
+            .he_mcs9_enabled = 0,
+            .he_su_beamformee_disabled = 0,
+            .he_trig_su_bmforming_feedback_disabled = 0,
+            .he_trig_mu_bmforming_partial_feedback_disabled = 0,
+            .he_trig_cqi_feedback_disabled = 0,
+            .he_reserved = 0,
             .sae_h2e_identifier = WIFI_STATION_H2E_IDENTIFIER,
         },
     };

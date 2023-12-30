@@ -11,7 +11,7 @@ namespace oscilloscope
         curr_value = 0;
         end_index = (run_result->first_index + run_result->length) % ADC_BUFFER_SIZE;
         len = run_result->length;
-#ifdef DEBUG
+#ifdef DEBUG_L2
         ESP_LOGI("iter", "Created BufferValuesIterator, index %u, len %u, end %u", index, len, end_index);
 #endif
     }
@@ -27,18 +27,18 @@ namespace oscilloscope
     {
         if (index + 1 == end_index)
         {
-#ifdef DEBUG
+#ifdef DEBUG_L2
             ESP_LOGI("iter", "End of iterator");
 #endif
             return false;
         }
         ++index;
         index %= ADC_BUFFER_SIZE;
-        curr_value = adc_buffer->values[index];
+        curr_value = ((double) adc_buffer->values[index]) * 0.95 / 4095;
         // printf("BufferValuesIterator::next(), index %u\r\n", index);
         return true;
     }
-    const unsigned &BufferValuesIterator::get() const
+    const double &BufferValuesIterator::get() const
     {
         return curr_value;
     }
@@ -61,10 +61,10 @@ namespace oscilloscope
         end_buffer_index = ((run_result->first_index + run_result->length) % ADC_BUFFER_SIZE) / VALUES_PER_CHUNK;
         end_offset_index = ((run_result->first_index + run_result->length) % ADC_BUFFER_SIZE) % VALUES_PER_CHUNK;
 
-        prev_buffer_timestamp = offset_index == run_result->start_time;
-        curr_buffer_timestamp = offset_index == VALUES_PER_CHUNK - 1 ? run_result->start_time : adc_buffer->timestamps[buffer_index];
+        prev_buffer_timestamp = adc_buffer->timestamps[(buffer_index + ADC_BUFFER_CHUNKS - 1) % ADC_BUFFER_CHUNKS];
+        curr_buffer_timestamp = adc_buffer->timestamps[buffer_index];
         timestamp_delta = curr_buffer_timestamp - prev_buffer_timestamp;
-#ifdef DEBUG
+#ifdef DEBUG_L2
         ESP_LOGI("iter", "Created BufferTimestampsIterator, i_buffer %u, i_offset %u, len %u, end_buffer %u, end_offset %u",
                  buffer_index, offset_index, len, end_buffer_index, end_offset_index);
 #endif
@@ -94,15 +94,15 @@ namespace oscilloscope
             offset_index %= VALUES_PER_CHUNK;
             curr_buffer_timestamp = adc_buffer->timestamps[buffer_index];
             timestamp_delta = curr_buffer_timestamp - prev_buffer_timestamp;
-#ifdef DEBUG
-            ESP_LOGI("iter", "Next i_buffer %u, i_offset %u, t_prev %lld, t_curr %lld, t_delta %lld",
-                     buffer_index, offset_index, prev_buffer_timestamp, curr_buffer_timestamp, timestamp_delta);
-#endif
+// #ifdef DEBUG_L2
+//             ESP_LOGI("iter", "Next i_buffer %u, i_offset %u, t_prev %lld, t_curr %lld, t_delta %lld",
+//                      buffer_index, offset_index, prev_buffer_timestamp, curr_buffer_timestamp, timestamp_delta);
+// #endif
         }
         if (buffer_index == end_buffer_index && offset_index == end_offset_index)
         {
             --offset_index;
-#ifdef DEBUG
+#ifdef DEBUG_L2
             ESP_LOGI("iter", "End of iterator");
 #endif
             return false;

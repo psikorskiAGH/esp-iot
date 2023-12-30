@@ -34,8 +34,8 @@ namespace oscilloscope
     struct settings_t
     {
         OscilloscopeModes mode = OscilloscopeModes::ONCE;
-        size_t samples_before = SAMPLES_LIMIT - 1;
-        size_t samples_after = 0;
+        size_t samples_before = SAMPLES_LIMIT / 2 - 1;
+        size_t samples_after = SAMPLES_LIMIT / 2 - 1;
         size_t samples_count = SAMPLES_LIMIT;
         uint16_t trigger_threshold = 2048; // in raw values
         Edge trigger_edge = Edge::RISING;
@@ -43,6 +43,7 @@ namespace oscilloscope
 
     struct mode_trigger_data_t
     {
+        bool first_cycle;
         bool should_finish;
         size_t finish_index;
     };

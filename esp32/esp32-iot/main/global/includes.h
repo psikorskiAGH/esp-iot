@@ -1,16 +1,23 @@
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
+// Done to ensure WebSocket support
+#ifndef CONFIG_HTTPD_WS_SUPPORT
+#define CONFIG_HTTPD_WS_SUPPORT
+#endif
+
 /* === Includes === */
 
 #include <cstdlib>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cmath>
 #include <istream>
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <memory>
 #include <utility>
+#include <vector>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
@@ -35,6 +42,8 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/encodings.h"
 
+#include "string_format.h"
+
 /* === Enums for config === */
 
 #define WIFI_STATION_MODE 0
@@ -47,11 +56,9 @@
 
 // Debug
 // #define TEST
-#define DEBUG
-
-#ifdef DEBUG
-#define REPEATING_LOG_SPARSITY 100
-#endif
+// #define DEBUG_L1
+// #define DEBUG_L2
+#define DEBUG_REPEATING_LOG_SPARSITY 100
 
 // WiFi
 #define WIFI_MODE WIFI_STATION_MODE
@@ -61,14 +68,13 @@
 
 // Oscilloscope related
 #define ADC_BUFFER_CHUNKS 17
-#define DATA_BUFFER_CHUNKS 16
 
 // ADC directly related
 #define SAMPLE_FREQ (20 * 1000)
 #define FRAME_SIZE 128
 #define ATTENUATION ADC_ATTEN_DB_0
 #define BIT_WIDTH ADC_BITWIDTH_12
-static adc_channel_t channel[1] = {ADC_CHANNEL_0};
+#define ADC_CHANNELS {ADC_CHANNEL_0};
 
 
 /* === Calculations === */

@@ -11,7 +11,7 @@ namespace api
         {
             delete body_cache;
         }
-#ifdef DEBUG
+#ifdef DEBUG_L2
         printf("Device response deleted\r\n");
 #endif
     };
@@ -28,7 +28,7 @@ namespace api
     unsigned Response::get_status_number()
     {
         return ((unsigned)this->status[0] - 48) * 100 + ((unsigned)this->status[1] - 48) * 10 + ((unsigned)this->status[2] - 48);
-    };
+    }
 
     /* === ResponseOK === */
 

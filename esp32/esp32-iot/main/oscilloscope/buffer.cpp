@@ -16,26 +16,30 @@ namespace oscilloscope
 
     void OscilloscopeBuffer::start()
     {
-#ifdef DEBUG
+#ifdef DEBUG_L1
         ESP_LOGI("adc_buf", "Starting Buffer: count %u, treshold %u", settings.samples_count, settings.trigger_threshold);
 #endif
         struct timeval start_time_struct = {};
         adc_buffer.index = 0;
+        mode_trigger_data.first_cycle = true;
+        mode_trigger_data.should_finish = false;
+
         is_running = true;
         gettimeofday(&start_time_struct, NULL);
         run_result.start_time = (int64_t)last_conversion_time.tv_sec * 1000000L + (int64_t)last_conversion_time.tv_usec;
-#ifdef DEBUG
+        adc_buffer.timestamps[ADC_BUFFER_CHUNKS-1] = run_result.start_time;
+#ifdef DEBUG_L2
         ESP_LOGI("adc_buf", "Started Buffer: is_running %u, start_time %lld", is_running, run_result.start_time);
 #endif
     };
 
     void OscilloscopeBuffer::finish()
     {
-#ifdef DEBUG
+#ifdef DEBUG_L1
         ESP_LOGI("adc_buf", "Finishing");
 #endif
         is_running = false;
-#ifndef DEBUG
+#ifndef DEBUG_L2
         xSemaphoreGive(finished_run_semaphore);
 #else
         if (finished_run_semaphore == NULL)
@@ -49,14 +53,14 @@ namespace oscilloscope
 #endif
     };
 
-#ifdef DEBUG
+#ifdef DEBUG_L2
     static int counter_1 = 0;
     static int counter_2 = 0;
 #endif
     void OscilloscopeBuffer::analyze_new_data(size_t i_from, size_t i_to)
     {
-#ifdef DEBUG
-        if (++counter_1 % REPEATING_LOG_SPARSITY == 0)
+#ifdef DEBUG_L2
+        if (++counter_1 % DEBUG_REPEATING_LOG_SPARSITY == 0)
         {
             ESP_LOGI("adc_buf", "Analyzing from %u to %u", i_from, i_to);
         };
@@ -69,7 +73,7 @@ namespace oscilloscope
             {
                 run_result.first_index = 0;
                 run_result.length = settings.samples_count;
-#ifdef DEBUG
+#ifdef DEBUG_L2
                 ESP_LOGI("adc_buf", "Once mode finished, first_index %u, length %u, start_time %lld",
                          run_result.first_index, run_result.length, run_result.start_time);
 #endif
@@ -81,11 +85,16 @@ namespace oscilloscope
             {
                 if (!(i_to < mode_trigger_data.finish_index && i_to >= run_result.first_index))
                 {
-#ifdef DEBUG
+#ifdef DEBUG_L2
                     ESP_LOGI("adc_buf", "Trigger mode finished, first_index %u, length %u, start_time %lld",
                              run_result.first_index, run_result.length, run_result.start_time);
 #endif
                     finish();
+                }
+            }
+            else if (mode_trigger_data.first_cycle) {
+                if (adc_buffer.index >= settings.samples_before) {
+                    mode_trigger_data.first_cycle = false;
                 }
             }
             else
@@ -128,9 +137,7 @@ namespace oscilloscope
             }
             break;
         default:
-#ifdef DEBUG
             ESP_LOGE("adc_buf", "Unknown mode %u", settings.mode);
-#endif
             finish();
             break;
         }
@@ -148,8 +155,8 @@ namespace oscilloscope
     }
     void OscilloscopeBuffer::read_adc_data(uint8_t *data, size_t const &length)
     {
-#ifdef DEBUG
-        if (++counter_2 % REPEATING_LOG_SPARSITY == 0)
+#ifdef DEBUG_L2
+        if (++counter_2 % DEBUG_REPEATING_LOG_SPARSITY == 0)
         {
             ESP_LOGI("adc_buf", "Reading data of size %u/%u, is_running %u", length, FRAME_SIZE, is_running);
             // is_running = !is_running;
@@ -200,54 +207,26 @@ namespace oscilloscope
         settings.trigger_edge = edge;
         return true;
     }
-    bool OscilloscopeBuffer::run_once()
+
+    bool OscilloscopeBuffer::run()
     {
-#ifdef DEBUG
-        ESP_LOGI("adc_buf", "Running once");
+#ifdef DEBUG_L1
+        ESP_LOGI("adc_buf", "Running");
 #endif
         if (is_running)
         {
-#ifdef DEBUG
+#ifdef DEBUG_L1
             ESP_LOGW("adc_buf", "Already running");
-#endif
-            return false;
-        }
-        if (!set_mode(OscilloscopeModes::ONCE))
-        {
-#ifdef DEBUG
-            ESP_LOGW("adc_buf", "Failed to set mode");
 #endif
             return false;
         }
         OscilloscopeBuffer::start();
         return true;
     }
-    bool OscilloscopeBuffer::run_trigger()
-    {
-#ifdef DEBUG
-        ESP_LOGI("adc_buf", "Running trigger");
-#endif
-        if (is_running)
-        {
-#ifdef DEBUG
-            ESP_LOGW("adc_buf", "Already running");
-#endif
-            return false;
-        }
-        mode_trigger_data.should_finish = false;
-        if (!set_mode(OscilloscopeModes::VALUE_TRIGGER))
-        {
-#ifdef DEBUG
-            ESP_LOGW("adc_buf", "Failed to set mode");
-#endif
-            return false;
-        }
-        OscilloscopeBuffer::start();
-        return true;
-    }
+
     BaseType_t OscilloscopeBuffer::wait_for_finish(TickType_t timeout)
     {
-#ifdef DEBUG
+#ifdef DEBUG_L2
         ESP_LOGI("adc_buf", "Waiting for finish (%lu ms), is_running %u", timeout / TICKS_MS(10) * 10, is_running);
 #endif
         BaseType_t ret;

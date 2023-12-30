@@ -11,6 +11,10 @@ namespace device
     Device::~Device(){
         delete device_data;
         delete device_config;
+        for (auto &&field : config_fields)
+        {
+            delete field.second;
+        }
     };  
 
     api::Response *Device::GET()

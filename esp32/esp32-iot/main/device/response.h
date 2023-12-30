@@ -4,29 +4,49 @@
 #include "../global/includes.h"
 #include "../global/types.h"
 #include "../api/response.h"
-#include "field.h"
+#include "data_response.h"
 
 namespace device
 {
-    class DeviceResponseWithFields : public api::Response
-    {
-    private:
-        RAPIDJSON_DEFAULT_ALLOCATOR alloc;
+    // class DeviceDataResponse : public api::Response
+    // {
+    // private:
+    //     RAPIDJSON_DEFAULT_ALLOCATOR alloc;
 
-    public:
-        DeviceResponseWithFields();
-        inline DeviceResponseWithFields operator=(DeviceResponseWithFields b) = delete;
-        api::ResponseBody *create_body();
+    // public:
+    //     DeviceDataResponse();
+    //     inline DeviceDataResponse operator=(DeviceDataResponse b) = delete;
+    //     api::ResponseBody *create_body();
 
-        template <typename T>
-        void add_field(SingleField<T> const &field);
+    //     template <typename T>
+    //     void add_field(SingleDataField<T> const &field);
 
-        template <typename T>
-        void add_field(ArrayField<T> const &field);
+    //     template <typename T>
+    //     void add_field(ArrayDataField<T> const &field);
 
-        template <typename T>
-        void add_field(TimeArrayField<T> const &field);
-    };
+    //     template <typename T>
+    //     void add_field(TimeArrayDataField<T> const &field);
+    // };
+
+    // class DeviceConfigResponse : public api::Response
+    // {
+    // private:
+    //     RAPIDJSON_DEFAULT_ALLOCATOR alloc;
+
+    // public:
+    //     DeviceConfigResponse();
+    //     inline DeviceConfigResponse operator=(DeviceConfigResponse b) = delete;
+    //     api::ResponseBody *create_body();
+
+    //     template <typename T>
+    //     void add_field(SingleDataField<T> const &field);
+
+    //     template <typename T>
+    //     void add_field(ArrayDataField<T> const &field);
+
+    //     template <typename T>
+    //     void add_field(TimeArrayDataField<T> const &field);
+    // };
 
     class DeviceResponseWithMap : public api::Response
     {

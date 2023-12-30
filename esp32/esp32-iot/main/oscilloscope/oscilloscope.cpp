@@ -15,20 +15,46 @@ namespace oscilloscope
         device_info.other["model"] = "ESP32-WROOM-32D";
         device_info.other["description"] = "This is a built-in oscilloscope on ESP32 platform.";
         device_info.other["author"] = "Piotr Sikorski";
+
+        config_fields = {
+            .mode = new device::EnumConfigField(
+                "mode",
+                {"once", "value_trigger"},
+                oscilloscope_data.get_mode()),
+            .samples_before = new device::IntConfigField(
+                "samples_before",
+                "samples",
+                oscilloscope_data.get_samples_before(),
+                {.min = 0, .max = SAMPLES_LIMIT / 2, .step = 1}),
+            .samples_after = new device::IntConfigField(
+                "samples_after",
+                "samples",
+                oscilloscope_data.get_samples_after(),
+                {.min = 0, .max = SAMPLES_LIMIT / 2, .step = 1}),
+            .trigger_threshold = new device::IntConfigField(
+                "trigger_threshold",
+                "raw",
+                oscilloscope_data.get_trigger_treshold(),
+                {.min = 0, .max = 4095, .step = 1}),
+            .trigger_edge = new device::EnumConfigField(
+                "trigger_edge",
+                {"rising", "falling"},
+                oscilloscope_data.get_trigger_edge()),
+        };
     };
 
-    bool Oscilloscope::get_response_data_fields(device::DeviceResponseWithFields *response)
+    bool Oscilloscope::get_response_data_fields(device::DeviceDataResponse *response)
     {
         // No ownership claim over response
 
-        oscilloscope_data.set_samples_range(20, 30);
+        // oscilloscope_data.set_samples_range(4, 4);
 
-        oscilloscope_data.run_trigger();
+        oscilloscope_data.run();
         oscilloscope_data.wait_for_finish(TICKS_MS(5000));
         auto values_iter = oscilloscope_data.get_values_iterator();
         auto timestamps_iter = oscilloscope_data.get_timestamps_iterator();
-        device::TimeArrayField<const unsigned> f = device::TimeArrayField<const unsigned>(
-            "values", "raw", values_iter, timestamps_iter);
+        device::TimeArrayDataField<const double> f = device::TimeArrayDataField<const double>(
+            "values", "V", values_iter, timestamps_iter, 0, 0.95);
 
         response->add_field(f);
         return true;
@@ -169,7 +195,7 @@ namespace oscilloscope
             el_it = data.FindMember("trigger_threshold");
             if (el_it != end)
             {
-            ++counted_fields;
+                ++counted_fields;
                 v = &el_it->value;
                 if (!v->IsUint())
                 {
@@ -185,7 +211,7 @@ namespace oscilloscope
             el_it = data.FindMember("trigger_edge");
             if (el_it != end)
             {
-            ++counted_fields;
+                ++counted_fields;
                 v = &el_it->value;
                 if (!v->IsString())
                 {
@@ -215,7 +241,8 @@ namespace oscilloscope
             }
         }
 
-        if (counted_fields < data.MemberCount()) {
+        if (counted_fields < data.MemberCount())
+        {
             return new api::BadRequestError("Invalid fields exist in request.");
         }
 
@@ -223,5 +250,27 @@ namespace oscilloscope
         api::ResponseBody *body = new api::ResponseBody(rapidjson::Type::kObjectType);
         body->AddMember("result", "success", body->GetAllocator());
         return new api::ResponseOK(body);
+    };
+
+    void Oscilloscope::init_config()
+    {
+        add_config_field(config_fields.mode);
+        add_config_field(config_fields.samples_before);
+        add_config_field(config_fields.samples_after);
+        add_config_field(config_fields.trigger_threshold);
+        add_config_field(config_fields.trigger_edge);
+    }
+    void Oscilloscope::on_config_update()
+    {
+        if (!oscilloscope_data.set_mode((OscilloscopeModes)config_fields.mode->index))
+            ESP_LOGE("OSC", "Couldn't set mode - unexpected error.");
+        if (!oscilloscope_data.set_samples_range(
+                config_fields.samples_before->value,
+                config_fields.samples_after->value))
+            ESP_LOGE("OSC", "Couldn't set samples range - unexpected error.");
+        if (!oscilloscope_data.set_trigger(
+                config_fields.trigger_threshold->value,
+                (Edge)config_fields.trigger_edge->index))
+            ESP_LOGE("OSC", "Couldn't set trigger - unexpected error.");
     };
 } // namespace oscilloscope

@@ -7,19 +7,19 @@
 
 namespace oscilloscope
 {
-    class BufferValuesIterator : public DataIterator<const unsigned> // Unsigned because RapidJson
+    class BufferValuesIterator : public DataIterator<const double> // Unsigned because RapidJson
     {
     public:
         BufferValuesIterator(adc_buffer_t *adc_buffer_p, run_result_t *run_result);
         BufferValuesIterator(const BufferValuesIterator &&other) noexcept; // move constructor
         bool next();
-        const unsigned &get() const;
+        const double &get() const;
         size_t length() const;
 
     private:
         adc_buffer_t *adc_buffer;
         size_t index;
-        unsigned curr_value;
+        double curr_value;
         size_t end_index;
         size_t len;
     };

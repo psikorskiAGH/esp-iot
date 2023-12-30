@@ -8,7 +8,6 @@ namespace oscilloscope
 
     bool conversion_done_interrupt(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
     {
-        gettimeofday(&last_conversion_time, NULL);
         BaseType_t mustYield = pdFALSE;
         // Notify that ADC continuous driver has done enough number of conversions
         vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
@@ -27,19 +26,21 @@ namespace oscilloscope
         ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
         adc_continuous_config_t dig_cfg = {
+            .pattern_num = channel_num,
+            .adc_pattern = NULL,
             .sample_freq_hz = SAMPLE_FREQ,
             .conv_mode = ADC_CONV_SINGLE_UNIT_1,
             .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
         };
 
-        adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
-        dig_cfg.pattern_num = channel_num;
+        adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX];
         for (int i = 0; i < channel_num; i++)
         {
-            adc_pattern[i].atten = ATTENUATION;
-            adc_pattern[i].channel = channel[i] & 0x7;
-            adc_pattern[i].unit = ADC_UNIT_1;
-            adc_pattern[i].bit_width = BIT_WIDTH;
+            adc_pattern[i] = {.atten = ATTENUATION,
+                              .channel = (uint8_t)(channel[i] & 0x7),
+                              .unit = ADC_UNIT_1,
+                              .bit_width = BIT_WIDTH,
+            };
         }
         dig_cfg.adc_pattern = adc_pattern;
         ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
@@ -47,6 +48,7 @@ namespace oscilloscope
         *out_handle = handle;
     }
 
+    static adc_channel_t channel[] = ADC_CHANNELS;
     void xTask_adc_run(void *params)
     {
         esp_err_t ret;
@@ -60,6 +62,7 @@ namespace oscilloscope
 
         adc_continuous_evt_cbs_t cbs = {
             .on_conv_done = conversion_done_interrupt,
+            .on_pool_ovf = NULL,
         };
         ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(adc_continuous_handle, &cbs, NULL));
         ESP_ERROR_CHECK(adc_continuous_start(adc_continuous_handle));
@@ -69,10 +72,11 @@ namespace oscilloscope
 
             // Wait for enough conversions
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            gettimeofday(&last_conversion_time, NULL);
 
             // char unit[] = "ADC_UNIT_1";
 
-#ifdef DEBUG
+#ifdef DEBUG_L2
             size_t i = 0;
 #endif
             while (1)
@@ -81,10 +85,10 @@ namespace oscilloscope
                 if (ret == ESP_OK)
                 {
                     oscilloscope_data.read_adc_data(adc_result, ret_num);
-#ifdef DEBUG
-                    if (++i % REPEATING_LOG_SPARSITY == 0)
+#ifdef DEBUG_L2
+                    if (++i % DEBUG_REPEATING_LOG_SPARSITY == 0)
                     {
-                        ESP_LOGI("adc", "Data gathering loop %u, gathered %u",i, adc_result[0]);
+                        ESP_LOGI("adc", "Data gathering loop %u, gathered %u", i, adc_result[0]);
                     }
                     vTaskDelay(1);
 #endif
@@ -103,7 +107,7 @@ namespace oscilloscope
 
     void start()
     {
-#ifdef DEBUG
+#ifdef DEBUG_L1
         ESP_LOGI("adc", "Starting ADC\r\n");
 #endif
         xTaskCreate(xTask_adc_run, "adc_print", configMINIMAL_STACK_SIZE * 4, nullptr, 1, &xHandle_adc_print);

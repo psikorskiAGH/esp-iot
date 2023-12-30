@@ -20,17 +20,17 @@ namespace server
 
         bool read_next()
         {
-            uint32_t buffer_size = MIN(req->content_len - read_offset, HTTP_DATA_STREAM_BUFFER_SIZE);
-            read_offset += buffer_size;
             buffer_index = 0;
-            has_more_data = req->content_len == read_offset;
             for (size_t i = 0; i < 3; i++)
             {
                 // Retry 3 times
-                int ret = httpd_req_recv(req, buffer, buffer_size);
-                if (ret <= 0)
+                int read_amount = httpd_req_recv(req, buffer, HTTP_DATA_STREAM_BUFFER_SIZE);
+#ifdef DEBUG_L2
+                ESP_LOGI("server", "POST download: read_amount = %d, has_more_data = %u", read_amount, has_more_data);
+#endif
+                if (read_amount < 0)
                 {
-                    if (ret == HTTPD_SOCK_ERR_TIMEOUT)
+                    if (read_amount == HTTPD_SOCK_ERR_TIMEOUT)
                     {
                         continue;
                     }
@@ -38,9 +38,14 @@ namespace server
                     has_more_data = false;
                     buffer_size = 0;
                     buffer[0] = '\0';
+                    return false;
                 }
                 else
                 {
+                    read_offset += read_amount;
+                    buffer_size = read_amount;
+                    has_more_data = req->content_len > read_offset;
+                    buffer[read_amount + 1] = '\0';
                     return true;
                 }
             }
@@ -59,7 +64,10 @@ namespace server
         }
 
         //! Read the current character from stream without moving the read cursor.
-        Ch Peek() const { return buffer[buffer_index]; };
+        Ch Peek() const
+        {
+            return buffer[buffer_index];
+        };
 
         //! Read the current character from stream and moving the read cursor to next character.
         Ch Take()

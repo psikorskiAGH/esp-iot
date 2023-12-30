@@ -3,9 +3,10 @@
 
 #include "../global/includes.h"
 #include "../api/path.h"
-#include "field.h"
+#include "data_response.h"
+#include "config_response.h"
 #include "response.h"
-#include "device_data.h"
+#include "paths.h"
 
 #define OSCILLOSCOPE_FRAME_SIZE SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 16
 #define OSCILLOSCOPE_SAMPLE_FREQ SOC_ADC_SAMPLE_FREQ_THRES_HIGH / 20 // see SOC_ADC_SAMPLE_FREQ_THRES_HIGH
@@ -23,23 +24,42 @@ namespace device
         std::unordered_map<std::string, std::string> other = {};
     };
 
-    class DeviceData; // Forward declaration
+    class DeviceData;   // Forward declaration
     class DeviceConfig; // Forward declaration
 
     class Device : public api::Path
     {
+        friend class DeviceConfig;
+
     private:
-        DeviceData* device_data;
-        DeviceConfig* device_config;
+        DeviceData *device_data;
+        DeviceConfig *device_config;
+
+        std::unordered_map<std::string, BaseConfigField *> config_fields;
+
     protected:
         device_info_t device_info;
+        /// @brief
+        /// @param field (takes ownership)
+        void add_config_field(BaseConfigField *field)
+        {
+            config_fields[field->name] = field;
+        };
 
     public:
         Device(device_info_t device_info);
+        /// @brief Initialization for overriden functions
+        void init() { init_config(); }
         ~Device();
-        virtual bool get_response_data_fields(DeviceResponseWithFields *response) = 0;
+        virtual bool get_response_data_fields(DeviceDataResponse *response) = 0;
         virtual bool get_config(DeviceResponseWithMap *response) = 0;
         virtual api::Response *set_config(rapidjson::Value const &data) = 0;
+
+        virtual void init_config()
+        {
+            printf("Device::init_config");
+        };
+        virtual void on_config_update() {};
 
         api::Response *GET();
     };
