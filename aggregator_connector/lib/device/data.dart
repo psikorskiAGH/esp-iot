@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import '../http_path.dart';
 import 'data_chart.dart';
 
-const Duration graphRefreshInterval = Duration(milliseconds: 500);
+const Duration graphRefreshInterval = Duration(milliseconds: 1000);
 
 class DeviceDataContext extends ChangeNotifier {
   final HttpJsonApi api;

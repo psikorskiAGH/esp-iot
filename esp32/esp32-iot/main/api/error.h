@@ -15,7 +15,7 @@ namespace api
 
         /// @brief Prepares response to be sent to client as an error.
         /// @param description
-        Error(std::string status, std::string error_name, std::string description) : Response(std::move(status)), error_name(error_name), description(description){};
+        Error(std::string status, std::string error_name, std::string description);
 
         ResponseBody *create_body();
     };

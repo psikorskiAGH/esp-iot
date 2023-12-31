@@ -56,7 +56,7 @@
 
 // Debug
 // #define TEST
-// #define DEBUG_L1
+#define DEBUG_L1
 // #define DEBUG_L2
 #define DEBUG_REPEATING_LOG_SPARSITY 100
 

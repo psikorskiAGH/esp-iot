@@ -51,7 +51,7 @@ namespace device
     class DeviceResponseWithMap : public api::Response
     {
     private:
-        RAPIDJSON_DEFAULT_ALLOCATOR alloc;
+        RAPIDJSON_DEFAULT_ALLOCATOR *alloc;
 
     public:
         DeviceResponseWithMap();

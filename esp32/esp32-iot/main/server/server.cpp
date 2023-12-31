@@ -30,8 +30,7 @@ namespace server
     api::Response *RootPath::GET()
     {
         api::ResponseBody *root = API_MACRO_CREATE_BODY;
-        auto alloc = root->GetAllocator();
-        root->AddMember(std::move("greetings"), std::move("Hello! You have successfully conected to the API."), alloc);
+        root->AddMember(std::move("greetings"), std::move("Hello! You have successfully conected to the API."), root->GetAllocator());
         return new api::ResponseOK(root);
     }
 
@@ -64,6 +63,8 @@ namespace server
                     }
                     part_i = 0;
                     uri_i++;
+                    if (c != '/')
+                        break;
                     continue;
                 }
                 else if (c == '/')
@@ -93,9 +94,9 @@ namespace server
         api::Response *response;
 #ifdef DEBUG_L2
         if (path == nullptr)
-            ESP_LOGI(SERVER_TAG, "Path found");
-        else
             ESP_LOGI(SERVER_TAG, "Path missing");
+        else
+            ESP_LOGI(SERVER_TAG, "Path found");
 #endif
         if (path == nullptr)
         {
@@ -113,9 +114,9 @@ namespace server
         api::Response *response;
 #ifdef DEBUG_L2
         if (path == nullptr)
-            ESP_LOGI(SERVER_TAG, "Path found");
-        else
             ESP_LOGI(SERVER_TAG, "Path missing");
+        else
+            ESP_LOGI(SERVER_TAG, "Path found");
 #endif
         if (path == nullptr)
         {
@@ -212,7 +213,9 @@ namespace server
                 free(buf);
                 return ret;
             }
+#ifdef DEBUG_L2
             ESP_LOGI(SERVER_TAG, "Got packet with message: %s", ws_pkt.payload);
+#endif
             (*buff_pointer) = buf;
         }
         else
@@ -229,15 +232,17 @@ namespace server
     {
         // Takes ownership of response
 
-        rapidjson::Document data(rapidjson::kObjectType);
-        RAPIDJSON_DEFAULT_ALLOCATOR alloc = data.GetAllocator();
+        // RAPIDJSON_DEFAULT_ALLOCATOR alloc = RAPIDJSON_DEFAULT_ALLOCATOR ();
+        rapidjson::Document *resp_body = response->get_body();
+        RAPIDJSON_DEFAULT_ALLOCATOR *alloc = &resp_body->GetAllocator(); // Hijack existing allocator
+        rapidjson::Document *data = new rapidjson::Document(rapidjson::kObjectType, alloc);
 
-        data.AddMember(std::move("status"), response->get_status_number(), alloc);
-        data.AddMember(std::move("body"), *response->get_body(), alloc);
+        data->AddMember(std::move("status"), response->get_status_number(), *alloc);
+        data->AddMember(std::move("body"), *response->get_body(), *alloc);
 
         rapidjson::StringBuffer resp_buffer;
         rapidjson::Writer<rapidjson::StringBuffer> writer(resp_buffer);
-        data.Accept(writer);
+        data->Accept(writer);
 
         httpd_ws_frame_t ws_pkt = {
             .final = false,
@@ -251,11 +256,11 @@ namespace server
         if (ret != ESP_OK)
         {
             ESP_LOGE(SERVER_TAG, "httpd_ws_send_frame failed with %d", ret);
-            return ret;
         }
 
         delete response; // Finally free up response
-        return ESP_OK;
+        delete data;
+        return ret;
     }
 
     enum HttpMethod
@@ -263,6 +268,67 @@ namespace server
         GET = 0,
         POST = 1
     };
+
+    static esp_err_t wss_handle_request(httpd_req_t *req, rapidjson::Value const &data)
+    {
+        if (!data.IsObject())
+        {
+            return wss_send_response(req, new api::BadRequestError("Payload is not JSON Object."));
+        }
+        auto end = data.MemberEnd();
+
+        // URI
+        auto it_uri = data.FindMember("uri");
+        if (it_uri == end)
+        {
+            return wss_send_response(req, new api::BadRequestError("Missing required field 'uri' in request."));
+        }
+        if (!it_uri->value.IsString())
+        {
+            return wss_send_response(req, new api::BadRequestError("Field 'uri' has incorrect type."));
+        }
+        const char *uri = it_uri->value.GetString();
+        if (uri[0] != '/')
+        {
+            return wss_send_response(req, new api::BadRequestError("URI must start with slash ('/')."));
+        }
+        api::Path *path = find_path_element(uri);
+        if (path == nullptr)
+        {
+            return wss_send_response(req, new api::NotFoundError(string_format("Resource '%s', does not exist.", uri)));
+        }
+
+        // Method
+        auto it_method = data.FindMember("method");
+        if (it_method == end)
+        {
+            return wss_send_response(req, new api::BadRequestError("Missing required field 'method' in request."));
+        }
+        if (!it_method->value.IsString())
+        {
+            return wss_send_response(req, new api::BadRequestError("Field 'method' has incorrect type."));
+        }
+        const char *method = it_method->value.GetString();
+        if (strcmp(method, "GET") == 0)
+        {
+            return wss_send_response(req, path->GET());
+        }
+        else if (strcmp(method, "POST") == 0)
+        {
+            // POST data
+            auto it_body = data.FindMember("body");
+            if (it_body == end)
+            {
+                return wss_send_response(req, new api::BadRequestError("Missing required field 'body' in POST request."));
+            }
+            // Don't care about type
+            return wss_send_response(req, path->POST(it_body->value));
+        }
+        else
+        {
+            return wss_send_response(req, new api::BadRequestError(string_format("Incorrect method '%s', must be one of 'GET', 'POST' (case sensitive).", method)));
+        }
+    }
 
     esp_err_t wss_handler(httpd_req_t *req)
     {
@@ -288,71 +354,17 @@ namespace server
         }
 
         // Parse JSON
-        rapidjson::Document data;
-        RAPIDJSON_DEFAULT_ALLOCATOR alloc = data.GetAllocator();
+        // RAPIDJSON_DEFAULT_ALLOCATOR alloc = RAPIDJSON_DEFAULT_ALLOCATOR ();
+
+        rapidjson::Document *data = new rapidjson::Document(rapidjson::kObjectType);
         rapidjson::StringStream stream(buf);
-        data.ParseStream(stream);
+        data->ParseStream(stream);
+
+        err = wss_handle_request(req, *data);
+
         free(buf);
-
-        api::Response *response;
-        if (!data.IsObject())
-        {
-            return wss_send_response(req, new api::BadRequestError("Payload is not JSON Object."));
-        }
-        auto end = data.MemberEnd();
-
-        // URI
-        auto it_uri = data.FindMember("method");
-        if (it_uri == end)
-        {
-            return wss_send_response(req, new api::BadRequestError("Missing required field 'uri' in request."));
-        }
-        if (!it_uri->value.IsString())
-        {
-            return wss_send_response(req, new api::BadRequestError("Field 'uri' has incorrect type."));
-        }
-        const char * uri = it_uri->value.GetString();
-        if (uri[0] != '/')
-        {
-            return wss_send_response(req, new api::BadRequestError("URI must start with slash ('/')."));
-        }
-        api::Path *path = find_path_element(uri);
-        if (path == nullptr) {
-            return wss_send_response(req, new api::NotFoundError(string_format("Resource '%s', does not exist.", uri)));
-        }
-
-        // Method
-        auto it_method = data.FindMember("method");
-        if (it_method == end)
-        {
-            return wss_send_response(req, new api::BadRequestError("Missing required field 'method' in request."));
-        }
-        if (!it_method->value.IsString())
-        {
-            return wss_send_response(req, new api::BadRequestError("Field 'method' has incorrect type."));
-        }
-        const char *method = it_method->value.GetString();
-        if (strcmp(method, "GET"))
-        {
-            response = path->GET();
-        }
-        else if (strcmp(method, "POST"))
-        {
-            // POST data
-            auto it_body = data.FindMember("body");
-            if (it_body == end)
-            {
-                return wss_send_response(req, new api::BadRequestError("Missing required field 'body' in POST request."));
-            }
-            // Don't care about type
-            response = path->POST(it_body->value);
-        }
-        else
-        {
-            return wss_send_response(req, new api::BadRequestError(string_format("Incorrect method '%s', must be one of 'GET', 'POST' (case sensitive).", method)));
-        }
-
-        return wss_send_response(req, response);
+        delete data;
+        return err;
     }
 
 } // namespace server
