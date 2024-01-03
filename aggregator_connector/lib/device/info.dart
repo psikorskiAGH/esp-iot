@@ -6,7 +6,7 @@ import '../http_path.dart';
 import '../translate.dart';
 
 class DeviceInfoContext extends ChangeNotifier {
-  final HttpJsonApi api;
+  final JsonApi api;
   Map<String, String> data = {"Loading...": ""};
 
   DeviceInfoContext({required this.api});
@@ -22,7 +22,7 @@ class DeviceInfoContext extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    final respData = await resp.asMap();
+    final respData = resp.asMap();
     data.clear();
     for (var el in respData.entries) {
       data[el.key.toString()] = el.value.toString();

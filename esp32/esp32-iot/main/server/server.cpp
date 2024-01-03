@@ -228,7 +228,7 @@ namespace server
     /// @brief
     /// @param req
     /// @param response (takes ownership)
-    static esp_err_t wss_send_response(httpd_req_t *req, api::Response *response)
+    static esp_err_t wss_send_response(httpd_req_t *req, api::Response *response, int id = -1)
     {
         // Takes ownership of response
 
@@ -238,6 +238,13 @@ namespace server
         rapidjson::Document *data = new rapidjson::Document(rapidjson::kObjectType, alloc);
 
         data->AddMember(std::move("status"), response->get_status_number(), *alloc);
+        if (id >= 0)
+        {
+#ifdef DEBUG_L2
+            ESP_LOGI(SERVER_TAG, "WSS: Adding ID %i to response.", id);
+#endif
+            data->AddMember(std::move("id"), id, *alloc);
+        }
         data->AddMember(std::move("body"), *response->get_body(), *alloc);
 
         rapidjson::StringBuffer resp_buffer;
@@ -277,41 +284,52 @@ namespace server
         }
         auto end = data.MemberEnd();
 
+        // ID
+        int req_id = -1;
+        auto it_id = data.FindMember("id");
+        if (it_id != end && it_id->value.IsInt64())
+        {
+            req_id = it_id->value.GetInt64();
+#ifdef DEBUG_L2
+            ESP_LOGI(SERVER_TAG, "WSS: Got request with ID %i.", req_id);
+#endif
+        }
+
         // URI
         auto it_uri = data.FindMember("uri");
         if (it_uri == end)
         {
-            return wss_send_response(req, new api::BadRequestError("Missing required field 'uri' in request."));
+            return wss_send_response(req, new api::BadRequestError("Missing required field 'uri' in request."), req_id);
         }
         if (!it_uri->value.IsString())
         {
-            return wss_send_response(req, new api::BadRequestError("Field 'uri' has incorrect type."));
+            return wss_send_response(req, new api::BadRequestError("Field 'uri' has incorrect type."), req_id);
         }
         const char *uri = it_uri->value.GetString();
         if (uri[0] != '/')
         {
-            return wss_send_response(req, new api::BadRequestError("URI must start with slash ('/')."));
+            return wss_send_response(req, new api::BadRequestError("URI must start with slash ('/')."), req_id);
         }
         api::Path *path = find_path_element(uri);
         if (path == nullptr)
         {
-            return wss_send_response(req, new api::NotFoundError(string_format("Resource '%s', does not exist.", uri)));
+            return wss_send_response(req, new api::NotFoundError(string_format("Resource '%s', does not exist.", uri)), req_id);
         }
 
         // Method
         auto it_method = data.FindMember("method");
         if (it_method == end)
         {
-            return wss_send_response(req, new api::BadRequestError("Missing required field 'method' in request."));
+            return wss_send_response(req, new api::BadRequestError("Missing required field 'method' in request."), req_id);
         }
         if (!it_method->value.IsString())
         {
-            return wss_send_response(req, new api::BadRequestError("Field 'method' has incorrect type."));
+            return wss_send_response(req, new api::BadRequestError("Field 'method' has incorrect type."), req_id);
         }
         const char *method = it_method->value.GetString();
         if (strcmp(method, "GET") == 0)
         {
-            return wss_send_response(req, path->GET());
+            return wss_send_response(req, path->GET(), req_id);
         }
         else if (strcmp(method, "POST") == 0)
         {
@@ -319,14 +337,14 @@ namespace server
             auto it_body = data.FindMember("body");
             if (it_body == end)
             {
-                return wss_send_response(req, new api::BadRequestError("Missing required field 'body' in POST request."));
+                return wss_send_response(req, new api::BadRequestError("Missing required field 'body' in POST request."), req_id);
             }
             // Don't care about type
-            return wss_send_response(req, path->POST(it_body->value));
+            return wss_send_response(req, path->POST(it_body->value), req_id);
         }
         else
         {
-            return wss_send_response(req, new api::BadRequestError(string_format("Incorrect method '%s', must be one of 'GET', 'POST' (case sensitive).", method)));
+            return wss_send_response(req, new api::BadRequestError(string_format("Incorrect method '%s', must be one of 'GET', 'POST' (case sensitive).", method)), req_id);
         }
     }
 
@@ -340,6 +358,9 @@ namespace server
 #endif
             return ESP_OK;
         }
+#ifdef DEBUG_L1
+        ESP_LOGI(SERVER_TAG, "Handling WSS request");
+#endif
         esp_err_t err;
         char *buf = nullptr;
         err = wss_read_frame(req, &buf);

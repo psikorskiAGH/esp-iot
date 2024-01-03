@@ -1,12 +1,6 @@
-import 'dart:math';
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'device/device.dart';
-
-Random random = Random();
-Device osc = const Device();
 
 void main() {
   runApp(const MainApp());
@@ -22,7 +16,7 @@ class MainApp extends StatelessWidget {
         body: ListView(
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
-          children: const [
+          children: [
             Device(),
             // Text("Hi")
           ],

@@ -16,6 +16,7 @@ namespace oscilloscope
         static bool oscilloscope_running;
         struct config_fields_t {
             device::EnumConfigField* mode;
+            device::IntConfigField* sample_freq;
             device::IntConfigField* samples_before;
             device::IntConfigField* samples_after;
             device::IntConfigField* trigger_threshold;
@@ -25,7 +26,6 @@ namespace oscilloscope
     public:
         Oscilloscope();
         bool get_response_data_fields(device::DeviceDataResponse *response);
-        bool get_config(device::DeviceResponseWithMap *response);
         api::Response *set_config(rapidjson::Value const &data);
 
         virtual void init_config();

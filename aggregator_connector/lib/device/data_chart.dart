@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:provider/provider.dart';
 
 class DeviceChartContext extends ChangeNotifier {
   DeviceChartContext() : super() {

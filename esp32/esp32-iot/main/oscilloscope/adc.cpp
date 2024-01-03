@@ -5,6 +5,23 @@ namespace oscilloscope
     TaskHandle_t s_task_handle;
     TaskHandle_t xHandle_adc_print = NULL;
     adc_continuous_handle_t adc_continuous_handle = NULL;
+    adc_continuous_config_t adc_cfg = {
+            .pattern_num = 0,
+            .adc_pattern = NULL,
+            .sample_freq_hz = SAMPLE_FREQ,
+            .conv_mode = ADC_CONV_SINGLE_UNIT_1,
+            .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
+        };
+    
+    struct {
+        bool config_reload = false;
+        SemaphoreHandle_t config_reloaded = NULL;
+    } xSemaphore_adc;
+
+    void adc_external_config_reload() {
+        xSemaphore_adc.config_reload = true;
+        xSemaphoreTake(xSemaphore_adc.config_reloaded, portMAX_DELAY);
+    }
 
     bool conversion_done_interrupt(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
     {
@@ -15,9 +32,15 @@ namespace oscilloscope
         return (mustYield == pdTRUE);
     };
 
+    void continuous_adc_reconfig() {
+
+    }
+
     void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
     {
         adc_continuous_handle_t handle = NULL;
+
+        xSemaphore_adc.config_reloaded = xSemaphoreCreateBinary();
 
         adc_continuous_handle_cfg_t adc_config = {
             .max_store_buf_size = 1024,
@@ -25,13 +48,8 @@ namespace oscilloscope
         };
         ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
-        adc_continuous_config_t dig_cfg = {
-            .pattern_num = channel_num,
-            .adc_pattern = NULL,
-            .sample_freq_hz = SAMPLE_FREQ,
-            .conv_mode = ADC_CONV_SINGLE_UNIT_1,
-            .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
-        };
+
+        adc_cfg.pattern_num = channel_num;
 
         adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX];
         for (int i = 0; i < channel_num; i++)
@@ -42,8 +60,8 @@ namespace oscilloscope
                               .bit_width = BIT_WIDTH,
             };
         }
-        dig_cfg.adc_pattern = adc_pattern;
-        ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+        adc_cfg.adc_pattern = adc_pattern;
+        ESP_ERROR_CHECK(adc_continuous_config(handle, &adc_cfg));
 
         *out_handle = handle;
     }
@@ -72,7 +90,6 @@ namespace oscilloscope
 
             // Wait for enough conversions
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            gettimeofday(&last_conversion_time, NULL);
 
             // char unit[] = "ADC_UNIT_1";
 
@@ -82,6 +99,7 @@ namespace oscilloscope
             while (1)
             {
                 ret = adc_continuous_read(adc_continuous_handle, adc_result, FRAME_SIZE, &ret_num, 0);
+                gettimeofday(&last_conversion_time, NULL);
                 if (ret == ESP_OK)
                 {
                     oscilloscope_data.read_adc_data(adc_result, ret_num);
@@ -93,7 +111,16 @@ namespace oscilloscope
                     vTaskDelay(1);
 #endif
                 }
-                else if (ret == ESP_ERR_TIMEOUT)
+                if (xSemaphore_adc.config_reload) {
+                    ESP_ERROR_CHECK(adc_continuous_stop(adc_continuous_handle));
+                    adc_cfg.adc_pattern[0].bit_width = BIT_WIDTH; // TODO: This is a bug
+                    ESP_ERROR_CHECK(adc_continuous_config(adc_continuous_handle, &adc_cfg));
+                    ESP_ERROR_CHECK(adc_continuous_start(adc_continuous_handle));
+                    xSemaphore_adc.config_reload = false;
+                    xSemaphoreGive(xSemaphore_adc.config_reloaded);
+                }
+                
+                if (ret == ESP_ERR_TIMEOUT)
                 {
                     // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
                     break;
@@ -110,7 +137,7 @@ namespace oscilloscope
 #ifdef DEBUG_L1
         ESP_LOGI("adc", "Starting ADC\r\n");
 #endif
-        xTaskCreate(xTask_adc_run, "adc_print", configMINIMAL_STACK_SIZE * 4, nullptr, 1, &xHandle_adc_print);
+        xTaskCreate(xTask_adc_run, "xTask_adc_run", configMINIMAL_STACK_SIZE * 4, nullptr, 1, &xHandle_adc_print);
         configASSERT(xHandle_adc_print);
     }
 }

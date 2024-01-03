@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:aggregator_connector/device/info.dart';
 import 'package:aggregator_connector/http_path.dart';
 import 'package:flutter/material.dart';
@@ -8,12 +6,14 @@ import 'config.dart';
 import 'data.dart';
 
 String oscIP = '192.168.1.107';
-var client = HttpClient();
+// var client = HttpClient();
+final apiHandlers =
+    JsonApiHandlers(server: oscIP, port: 80, path: "/oscilloscope");
 
 class Device extends StatelessWidget {
-  final int refreshPeriod;
-
-  const Device({super.key, this.refreshPeriod = 100});
+  Device({super.key}) {
+    // apiHandlers.useWebSocket();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class Device extends StatelessWidget {
       children: [
         DeviceInfo(
           ctx: DeviceInfoContext(
-            api: HttpJsonApi(server: oscIP, port: 80, path: "/oscilloscope"),
+            api: JsonApi(handlers: apiHandlers, subpath: ""),
           ),
         ),
         Row(
@@ -33,16 +33,14 @@ class Device extends StatelessWidget {
             Expanded(
               child: DeviceData(
                 ctx: DeviceDataContext(
-                  api: HttpJsonApi(
-                      server: oscIP, port: 80, path: "/oscilloscope/data"),
+                  api: JsonApi(handlers: apiHandlers, subpath: "data"),
                 ),
               ),
             ),
             Expanded(
               child: DeviceConfig(
                 ctx: DeviceConfigContext(
-                  api: HttpJsonApi(
-                      server: oscIP, port: 80, path: "/oscilloscope/config"),
+                  api: JsonApi(handlers: apiHandlers, subpath: "config"),
                 ),
               ),
             ),

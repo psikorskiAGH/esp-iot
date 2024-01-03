@@ -52,8 +52,6 @@ namespace device
         void init() { init_config(); }
         ~Device();
         virtual bool get_response_data_fields(DeviceDataResponse *response) = 0;
-        virtual bool get_config(DeviceResponseWithMap *response) = 0;
-        virtual api::Response *set_config(rapidjson::Value const &data) = 0;
 
         virtual void init_config()
         {

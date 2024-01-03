@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:aggregator_connector/device/data_field.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +11,7 @@ import 'data_chart.dart';
 const Duration graphRefreshInterval = Duration(milliseconds: 1000);
 
 class DeviceDataContext extends ChangeNotifier {
-  final HttpJsonApi api;
+  final JsonApi api;
   List<Map<String, dynamic>> data = [
     {"type": "single", "name": "Loading...", "value": "", "unit": ""}
   ];
@@ -25,14 +24,14 @@ class DeviceDataContext extends ChangeNotifier {
       return;
     }
     ++_updating;
+    print("Updating");
 
     try {
-      print("Data update");
       final HttpJsonResponse resp;
       final List<dynamic> respData;
       try {
         resp = await api.get();
-        respData = await resp.asList();
+        respData = resp.asList();
         data.clear();
         for (final r in respData) {
           data.add(r as Map<String, dynamic>);

@@ -7,7 +7,7 @@ import '../http_path.dart';
 
 
 class DeviceConfigContext extends ChangeNotifier {
-  final HttpJsonApi api;
+  final JsonApi api;
   int _posting = 0;
   int _reloading = 0;
   List<Widget> widgets = [const Text("Initializing...")];
@@ -37,8 +37,7 @@ class DeviceConfigContext extends ChangeNotifier {
     } catch (e) {
       widgets.clear();
       widgets.add(Text("Error: ${e.toString()}"));
-      --_posting;
-      return;
+      notifyListeners();
     }
     await reload();
     --_posting;
@@ -61,10 +60,10 @@ class DeviceConfigContext extends ChangeNotifier {
       widgets.add(ConfigDataErrorRow(description: "Error: $e"));
       notifyListeners();
       --_reloading;
-      return;
+      return reload();
     }
     widgets.clear();
-    final respData = await resp.asList();
+    final respData = resp.asList();
     for (var el in respData) {
       switch (el["type"]) {
         case "enum":
