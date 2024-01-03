@@ -35,8 +35,7 @@ extern "C"
         server::start();
 
         oscilloscope::Oscilloscope* osc = new oscilloscope::Oscilloscope();
-        osc->init();
-        server::root_path->register_child_path(osc);
+        server::devices.add_device(osc);
 
         while (true)
         {

@@ -7,6 +7,7 @@
 #include "config_response.h"
 #include "response.h"
 #include "paths.h"
+#include "list.h"
 
 #define OSCILLOSCOPE_FRAME_SIZE SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 16
 #define OSCILLOSCOPE_SAMPLE_FREQ SOC_ADC_SAMPLE_FREQ_THRES_HIGH / 20 // see SOC_ADC_SAMPLE_FREQ_THRES_HIGH
@@ -26,10 +27,12 @@ namespace device
 
     class DeviceData;   // Forward declaration
     class DeviceConfig; // Forward declaration
+    class DeviceList;   // Forward declaration
 
     class Device : public api::Path
     {
         friend class DeviceConfig;
+        friend class DeviceList;
 
     private:
         DeviceData *device_data;

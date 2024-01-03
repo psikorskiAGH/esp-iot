@@ -8,7 +8,7 @@ import 'data.dart';
 String oscIP = '192.168.1.107';
 // var client = HttpClient();
 final apiHandlers =
-    JsonApiHandlers(server: oscIP, port: 80, path: "/oscilloscope");
+    JsonApiHandlers(server: oscIP, port: 80, path: "/devices/oscilloscope");
 
 class Device extends StatelessWidget {
   Device({super.key}) {

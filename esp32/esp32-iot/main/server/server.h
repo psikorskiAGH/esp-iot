@@ -4,6 +4,7 @@
 
 #include "../global/includes.h"
 #include "../api/path.h"
+#include "../device/list.h"
 #include "http_data_stream.h"
 
 namespace server
@@ -15,6 +16,7 @@ namespace server
         api::Response *GET();
     };
     extern RootPath *root_path;
+    device::DeviceList devices = device::DeviceList();
 
     /// @brief Finds path element for given URI.
     /// @param uri URI (path) to search for

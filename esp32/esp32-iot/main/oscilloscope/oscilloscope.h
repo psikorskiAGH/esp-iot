@@ -26,7 +26,6 @@ namespace oscilloscope
     public:
         Oscilloscope();
         bool get_response_data_fields(device::DeviceDataResponse *response);
-        api::Response *set_config(rapidjson::Value const &data);
 
         virtual void init_config();
         virtual void on_config_update();

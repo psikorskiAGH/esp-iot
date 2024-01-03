@@ -21,6 +21,10 @@ namespace server
             httpd_register_uri_handler(server_handle, &uri_get);
             httpd_register_uri_handler(server_handle, &uri_post);
         }
+
+        /* Add main device list */
+        root_path->register_child_path(&devices);
+
         /* If server failed to start, handle will be NULL */
         return server_handle == nullptr;
     }
