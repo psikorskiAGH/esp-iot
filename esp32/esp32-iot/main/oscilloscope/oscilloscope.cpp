@@ -21,21 +21,21 @@ namespace oscilloscope
                 "mode",
                 {"once", "value_trigger"},
                 oscilloscope_data.get_mode()),
-            .sample_freq = new device::IntConfigField(
+            .sample_freq = new device::DoubleConfigField(
                 "sample_freq",
-                "Hz",
-                adc_cfg.sample_freq_hz,
-                {.min = 20000, .max = 2000000, .step = 1}),
+                "kHz",
+                ((double)adc_cfg.sample_freq_hz) / 1000,
+                {.min = 20, .max = 2000, .step = 0.1}),
             .samples_before = new device::IntConfigField(
                 "samples_before",
                 "samples",
                 oscilloscope_data.get_samples_before(),
-                {.min = 0, .max = SAMPLES_LIMIT / 2, .step = 1}),
+                {.min = 0, .max = SAMPLES_LIMIT / 2 - 1, .step = 1}),
             .samples_after = new device::IntConfigField(
                 "samples_after",
                 "samples",
                 oscilloscope_data.get_samples_after(),
-                {.min = 0, .max = SAMPLES_LIMIT / 2, .step = 1}),
+                {.min = 0, .max = SAMPLES_LIMIT / 2 - 1, .step = 1}),
             .trigger_threshold = new device::IntConfigField(
                 "trigger_threshold",
                 "raw",
@@ -59,7 +59,7 @@ namespace oscilloscope
         auto values_iter = oscilloscope_data.get_values_iterator();
         auto timestamps_iter = oscilloscope_data.get_timestamps_iterator();
         device::TimeArrayDataField<const double> f = device::TimeArrayDataField<const double>(
-            "values", "V", values_iter, timestamps_iter, 0, 0.95);
+            "voltage", "V", values_iter, timestamps_iter, ATTENUATION_V_MIN, ATTENUATION_V_MAX);
 
         response->add_field(f);
         return true;
@@ -86,9 +86,10 @@ namespace oscilloscope
                 config_fields.trigger_threshold->value,
                 (Edge)config_fields.trigger_edge->index))
             ESP_LOGE("OSC", "Couldn't set trigger - unexpected error.");
-        if (adc_cfg.sample_freq_hz != (uint32_t)config_fields.sample_freq->value)
+        uint32_t new_sample_freq = (uint32_t)(config_fields.sample_freq->value * 1000);
+        if (adc_cfg.sample_freq_hz != new_sample_freq)
         {
-            adc_cfg.sample_freq_hz = (uint32_t)config_fields.sample_freq->value;
+            adc_cfg.sample_freq_hz = new_sample_freq;
             adc_external_config_reload();
         }
     };

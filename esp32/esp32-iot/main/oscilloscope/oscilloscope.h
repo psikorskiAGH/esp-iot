@@ -16,7 +16,7 @@ namespace oscilloscope
         static bool oscilloscope_running;
         struct config_fields_t {
             device::EnumConfigField* mode;
-            device::IntConfigField* sample_freq;
+            device::DoubleConfigField* sample_freq;
             device::IntConfigField* samples_before;
             device::IntConfigField* samples_after;
             device::IntConfigField* trigger_threshold;

@@ -20,12 +20,17 @@ namespace device
         BaseConfigField(
             std::string name,
             std::string type)
-            : name(name.c_str()), type(type.c_str()){};
+            : name(name.c_str()), type(type.c_str())
+        {
+#ifdef DEBUG_L2
+            ESP_LOGI("device.config", "Name: %s, Type: %s", name.c_str(), type.c_str());
+#endif
+        };
         virtual ~BaseConfigField(){};
 
         // virtual rapidjson::Value get_constrains(RAPIDJSON_DEFAULT_ALLOCATOR &alloc) = 0;
         virtual rapidjson::Value render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc); // Has implementation but should be overriden incrementally
-        virtual api::Error* stage_update(rapidjson::Value const &field) { return nullptr; };
+        virtual api::Error *stage_update(rapidjson::Value const &field) { return nullptr; };
         virtual void apply_update(){};
     };
 
@@ -62,7 +67,7 @@ namespace device
             : BaseConfigField(name, type), constrains(constrains), unit(unit), value(value){};
 
         virtual rapidjson::Value render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc);
-        virtual api::Error* stage_update(rapidjson::Value const &field);
+        virtual api::Error *stage_update(rapidjson::Value const &field);
         virtual void apply_update();
         virtual bool get_value_from_field(rapidjson::Value const &field, T *read_value) = 0;
     };
@@ -86,7 +91,7 @@ namespace device
         DoubleConfigField(
             std::string name,
             std::string unit,
-            int64_t value,
+            double value,
             number_constrains_t<double> constrains)
             : NumberConfigField(name, "float", unit, value, constrains){};
 
@@ -103,7 +108,7 @@ namespace device
         size_t index;
         EnumConfigField(std::string name, std::vector<std::string> enum_values, size_t curr_index) : BaseConfigField(name, "enum"), enum_values(enum_values), index(curr_index){};
         rapidjson::Value render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc);
-        virtual api::Error* stage_update(rapidjson::Value const &field);
+        virtual api::Error *stage_update(rapidjson::Value const &field);
         virtual void apply_update();
     };
 

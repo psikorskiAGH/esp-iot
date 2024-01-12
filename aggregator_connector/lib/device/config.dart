@@ -4,39 +4,39 @@ import 'package:provider/provider.dart';
 
 import '../http_path.dart';
 
-
-
 class DeviceConfigContext extends ChangeNotifier {
   final JsonApi api;
   int _posting = 0;
   int _reloading = 0;
   List<Widget> widgets = [const Text("Initializing...")];
+  List<Widget> postErrors = [];
 
   DeviceConfigContext({required this.api});
 
-  void post({required String name, String? unit, required dynamic value}) async {
-    print("Posting '$name': $value [$unit]");
+  void post(
+      {required String name, String? unit, required dynamic value}) async {
+
     if (_posting > 0) {
-      print("WARN: DeviceConfig already posting.");
+
       return;
     }
     ++_posting;
+    postErrors.clear();
     widgets.clear();
     widgets.add(const Text("Loading..."));
     notifyListeners();
 
-    var data = {
-      "name": name,
-      "value": value
-    };
+    var data = {"name": name, "value": value};
     if (unit != null) {
       data["unit"] = unit;
     }
     try {
-    await api.post([data]);
+      await api.post([data]);
     } catch (e) {
       widgets.clear();
-      widgets.add(Text("Error: ${e.toString()}"));
+      postErrors.add(ConfigDataErrorRow(
+        description: "Error: $e",
+      ));
       notifyListeners();
     }
     await reload();
@@ -44,9 +44,9 @@ class DeviceConfigContext extends ChangeNotifier {
   }
 
   Future<void> reload() async {
-    print("Updating");
+
     if (_reloading > 0) {
-      print("WARN: DeviceConfig already reloading.");
+
       return;
     }
 
@@ -71,7 +71,10 @@ class DeviceConfigContext extends ChangeNotifier {
           break;
         case "integer":
         case "float":
-          widgets.add(ConfigDataNumberRow(data: el, ctx: this,));
+          widgets.add(ConfigDataNumberRow(
+            data: el,
+            ctx: this,
+          ));
           break;
         default:
       }
@@ -94,14 +97,13 @@ class DeviceConfig extends StatelessWidget {
           create: (_) => ctx,
           child: Consumer<DeviceConfigContext>(builder: tableBuilder),
         ));
-    ctx.reload();
     return ret;
   }
 
   Widget tableBuilder(
       BuildContext context, DeviceConfigContext ctx, Widget? child) {
     return Column(
-      children: ctx.widgets,
+      children: ctx.postErrors + ctx.widgets,
     );
   }
 }

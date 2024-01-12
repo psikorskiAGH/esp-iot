@@ -142,12 +142,14 @@ namespace server
     {
         // Takes ownership of response
 
-        rapidjson::StringBuffer resp_buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(resp_buffer);
-        response->get_body()->Accept(writer);
         httpd_resp_set_type(req, "application/json");
         httpd_resp_set_status(req, response->status.c_str());
-        httpd_resp_send(req, resp_buffer.GetString(), resp_buffer.GetSize());
+
+        HttpStringBuffer resp_buffer(req, 1024U);
+        rapidjson::Writer<rapidjson::StringBuffer> writer(resp_buffer);
+        response->get_body()->Accept(writer);
+        resp_buffer.Finish();
+        // httpd_resp_send(req, resp_buffer.GetString(), resp_buffer.GetSize());
 
         delete response; // Finally free up response
     }

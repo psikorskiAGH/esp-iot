@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -8,7 +9,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class HttpJsonResponse {
   final dynamic jsonValue;
   HttpJsonResponse(this.jsonValue) {
-    // print("Created response with data: $jsonValue");
+    if (jsonValue is Map &&
+        jsonValue["status"] is int &&
+        (jsonValue["status"] / 200).floor() != 200) {
+      throw Exception(
+          "Got response with status ${jsonValue["status"]}: $jsonValue");
+    }
   }
 
   static Future<HttpJsonResponse> fromHttpClientResponse(
@@ -22,7 +28,7 @@ class HttpJsonResponse {
       return jsonValue;
     } else {
       throw Exception(
-          "JSON data is not of Map type (got ${jsonValue.runtimeType})");
+          "JSON data is not of Map type (got ${jsonValue.runtimeType}): $jsonValue");
     }
   }
 
@@ -31,7 +37,7 @@ class HttpJsonResponse {
       return jsonValue;
     } else {
       throw Exception(
-          "JSON data is not of List type (got ${jsonValue.runtimeType})");
+          "JSON data is not of List type (got ${jsonValue.runtimeType}): $jsonValue");
     }
   }
 }
@@ -47,10 +53,11 @@ class JsonApiHandlers {
   JsonApiHandlers({
     required String server,
     required int port,
-    required String path,
+    String path = '',
   })  : _path = path,
         _port = port,
         _server = server {
+
     /* _wssAwaitingRequestsTimer = */
     Timer.periodic(const Duration(seconds: 1), (timer) {
       _wssAwaitingRequestTimeouts();
@@ -89,7 +96,7 @@ class JsonApiHandlers {
   // }
 
   void _wssStreamHandler(dynamic rawData) {
-    // print("WSS: received '$rawData'");
+
     final dynamic data;
     try {
       data = jsonDecode(rawData);
@@ -133,8 +140,8 @@ class JsonApiHandlers {
     _wssAwaitingRequests[id] =
         (completer, DateTime.now().add(_timeoutDuration));
     _wssClient!.sink.add(rawData);
-    // print("WSS: sent '$rawData'");
-    // print("Waiting requests: $_wssAwaitingRequests");
+
+
     return completer.future;
   }
 
@@ -190,22 +197,22 @@ class JsonApiHandlers {
   /* === User facing methods === */
 
   Future<void> useWebSocket({String wssSubpath = '/websocket'}) {
+    print("Using webSocket");
     final WebSocketChannel channel;
-    try{
-    channel =
-        WebSocketChannel.connect(Uri.parse("ws://$_server$wssSubpath"));
+    try {
+      channel = WebSocketChannel.connect(Uri.parse("ws://$_server$wssSubpath"));
     } catch (e) {
       // In case of failure, retry
-      print("Socket error: $e");
-      print("Reloading socket");
+
+
       return useWebSocket(wssSubpath: wssSubpath);
     }
-    
+
     // In case of failure, retry
     channel.sink.done.then((value) {
-      print("Socket closed");
+
       if (_wssClient == channel) {
-        print("Reloading socket");
+
         useWebSocket(wssSubpath: wssSubpath);
       }
     });
@@ -218,8 +225,11 @@ class JsonApiHandlers {
   }
 
   void useHttp() {
+    print("Using HTTP");
     _wssClient = null;
   }
+
+  bool isUsingWebSocket() => _wssClient != null; 
 
   Future<HttpJsonResponse> get({String subpath = ''}) {
     if (_wssClient == null) {
@@ -230,6 +240,7 @@ class JsonApiHandlers {
   }
 
   Future<HttpJsonResponse> post(dynamic data, {String subpath = ''}) {
+
     if (_wssClient == null) {
       return _httpPost(data, subpath: subpath);
     } else {

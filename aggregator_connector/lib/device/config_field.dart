@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:input_slider/input_slider.dart';
 import '../translate.dart';
 
+double mod(double value, double divider) {
+  // '%' does not work with double values, but this works!
+  final double divResult = value / divider;
+  final double rest = divResult - divResult.floorToDouble();
+  if (rest > 0.999999) {
+    return 0;
+  }
+  return rest * divider;
+}
 
 class ConfigDataErrorRow extends StatelessWidget {
   final String description;
@@ -14,7 +23,12 @@ class ConfigDataErrorRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text("Error: $description"),
+          child: Text(
+            "Error: $description",
+            style: const TextStyle(
+              color: Color(0xFFCC0000),
+            ),
+          ),
         ),
       ],
     );
@@ -24,7 +38,8 @@ class ConfigDataErrorRow extends StatelessWidget {
 class ConfigDataNumberRow extends StatelessWidget {
   final DeviceConfigContext ctx;
   final Map<String, dynamic> data;
-  const ConfigDataNumberRow({LocalKey? key, required this.data, required this.ctx})
+  const ConfigDataNumberRow(
+      {LocalKey? key, required this.data, required this.ctx})
       : super(key: key);
 
   @override
@@ -34,10 +49,10 @@ class ConfigDataNumberRow extends StatelessWidget {
     final double vMin = constrains["min"].toDouble();
     final double vStep = constrains["step"].toDouble();
     final double vMax = constrains["max"].toDouble() -
-        (constrains["max"].toDouble() - vMin) % vStep as double;
+        mod(constrains["max"].toDouble() - vMin, vStep);
     final int vDivisions = ((vMax - vMin) / vStep).floor();
-    print("Divs: $vDivisions");
-    if (value < vMin || value > vMax || (value - vMin) % vStep != 0) {
+
+    if (value < vMin || value > vMax || mod(value - vMin, vStep) != 0) {
       return Row(
         children: [
           Expanded(
@@ -47,7 +62,11 @@ class ConfigDataNumberRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-                "Error: value $value does not satisfy constrains: min $vMin, max $vMax, step $vStep."),
+              "Error: value $value does not satisfy constrains: min $vMin, max $vMax, step $vStep.",
+              style: const TextStyle(
+                color: Color(0xFFCC0000),
+              ),
+            ),
           )
         ],
       );
@@ -56,30 +75,15 @@ class ConfigDataNumberRow extends StatelessWidget {
       children: [
         Expanded(
           flex: 1,
-          child: Text(tr(data["name"])),
+          child: Text("${tr(data["name"])} [${data["unit"]}]"),
         ),
-        // Expanded(
-        //   flex: 3,
-        //   child: Text("${data["value"]} [${data["unit"]}]"),
-        // ),
-        // Expanded(
-        //   flex: 3,
-        //   child: Slider(
-        //     value: value,
-        //     onChanged: (e) => print(e),
-        //     onChangeEnd: (value) => print("End: $value"),
-        //     min: vMin,
-        //     max: vMax,
-        //     divisions: vDivisions,
-        //   ),
-        // ),
         Expanded(
           flex: 3,
           child: InputSlider(
             defaultValue: value,
             onChange: (e) => null,
             onChangeEnd: (v) {
-              print("End: $v");
+
               ctx.post(name: data["name"], unit: data["unit"], value: v);
             },
             min: vMin,
@@ -95,7 +99,8 @@ class ConfigDataNumberRow extends StatelessWidget {
 class ConfigDataEnumRow extends StatelessWidget {
   final DeviceConfigContext ctx;
   final Map<String, dynamic> data;
-  const ConfigDataEnumRow({LocalKey? key, required this.data, required this.ctx})
+  const ConfigDataEnumRow(
+      {LocalKey? key, required this.data, required this.ctx})
       : super(key: key);
 
   @override
@@ -126,7 +131,6 @@ class ConfigDataEnumRow extends StatelessWidget {
                 value: data["value"],
                 items: enumStrings,
                 onChanged: (v) {
-                  print(v);
                   ctx.post(name: data["name"], value: v);
                 },
               ),

@@ -2,6 +2,17 @@
 
 namespace device
 {
+    static double d_mod(double value, double divider)
+    {
+        double divResult = value / divider;
+        double rest = divResult - floor(divResult);
+        if (rest > 0.999999)  // Getting rid of double imprecision
+        {
+            return 0;
+        }
+        return (rest) * divider;
+    }
+
     rapidjson::Value BaseConfigField::render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc)
     {
         rapidjson::Value v(rapidjson::kObjectType);
@@ -33,18 +44,18 @@ namespace device
         auto &&it = field.FindMember("unit");
         if (it == field.MemberEnd() || !it->value.IsString())
         {
-            return new api::BadRequestError(string_format("Field %s: 'unit' key is missing or its value has incorrect type.", name));
+            return new api::BadRequestError(string_format("Field %s: 'unit' key is missing or its value has incorrect type.", name.c_str()));
         }
         unit_staged = std::string(it->value.GetString());
 
         auto &&it2 = field.FindMember("value");
         if (it2 == field.MemberEnd() || !get_value_from_field(it2->value, &value_staged))
         {
-            return new api::BadRequestError(string_format("Field %s: 'value' key is missing or its value has incorrect type.", name));
+            return new api::BadRequestError(string_format("Field %s: 'value' key is missing or its value has incorrect type.", name.c_str()));
         }
         if (!constrains.validate(value_staged))
         {
-            return new api::BadRequestError(string_format("Field %s: value constrains are not satisfied.", name));
+            return new api::BadRequestError(string_format("Field %s: value constrains are not satisfied.", name.c_str()));
         }
         return nullptr;
     }
@@ -60,8 +71,18 @@ namespace device
     template <typename T>
     bool number_constrains_t<T>::validate(T value)
     {
-        return value <= max && value >= min && std::fmod((value - min), step) == 0;
+        return value <= max && value >= min && d_mod(value - min, step) == 0;
     }
+
+    template <>
+    bool number_constrains_t<double>::validate(double value)
+    {
+#ifdef DEBUG_L2
+        ESP_LOGI("device.config", "%f <= %f <= %f, d_mod %f", min, value, max, d_mod(value - min, step));
+#endif
+        return value <= max && value >= min && d_mod(value - min, step) == 0;
+    }
+
 
     template <typename T>
     rapidjson::Value number_constrains_t<T>::render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc)
@@ -75,7 +96,7 @@ namespace device
 
     /* === IntConfigField === */
 
-    template class NumberConfigField<int64_t>;
+    template  class NumberConfigField<int64_t>;
     // template class number_constrains_t<int64_t>;
 
     bool IntConfigField::get_value_from_field(rapidjson::Value const &field, int64_t *read_value)
@@ -147,7 +168,7 @@ namespace device
         auto &&it = field.FindMember("value");
         if (it == field.MemberEnd() || !it->value.IsString())
         {
-            return new api::BadRequestError(string_format("Field %s: 'value' key is missing or its value has incorrect type.", name));
+            return new api::BadRequestError(string_format("Field %s: 'value' key is missing or its value has incorrect type.", name.c_str()));
         }
         std::string enum_name = it->value.GetString();
 #ifdef DEBUG_L2
@@ -165,7 +186,7 @@ namespace device
 
         if (i >= enum_values.size())
         {
-            return new api::BadRequestError(string_format("Field %s: there is no enum value of ''.", name, enum_name));
+            return new api::BadRequestError(string_format("Field %s: there is no enum value of '%s'.", name.c_str(), enum_name.c_str()));
         }
         index_staged = i;
 #ifdef DEBUG_L2

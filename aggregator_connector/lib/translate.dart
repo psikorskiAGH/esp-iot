@@ -6,10 +6,12 @@ const _keyTranslation = <String, String>{
   'author': 'Author',
   'description': 'Description',
   'model': 'Model',
+  'voltage': 'Voltage',
   'trigger_threshold': 'Trigger threshold',
   'trigger_edge': 'Trigger edge',
   'samples_before': 'Samples before',
   'samples_after': 'Samples after',
+  'sample_freq': 'Sampling frequency',
   'mode': 'Mode',
 };
 

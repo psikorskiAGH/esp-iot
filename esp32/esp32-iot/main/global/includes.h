@@ -49,7 +49,7 @@
 #define WIFI_STATION_MODE 0
 #define WIFI_AP_MODE 1
 
-#define TICKS_MS(T) (T * configTICK_RATE_HZ / 1000)  // Minimum T=10
+#define TICKS_MS(T) (T * configTICK_RATE_HZ / 1000) // Minimum T=10
 #define MIN(X, Y) (X <= Y ? X : Y)
 
 /* === CONFIG === */
@@ -64,25 +64,55 @@
 #define WIFI_MODE WIFI_STATION_MODE
 
 // HTTP Server
-#define HTTP_DATA_STREAM_BUFFER_SIZE 512  // Bytes
+#define HTTP_DATA_STREAM_BUFFER_SIZE 512 // Bytes
 
 // Oscilloscope related
-#define ADC_BUFFER_CHUNKS 9
+#define ADC_BUFFER_CHUNKS 10
 
 // ADC directly related
 #define SAMPLE_FREQ (200 * 1000)
-#define FRAME_SIZE 256  // min 140
-#define ATTENUATION ADC_ATTEN_DB_0
+#define FRAME_SIZE 256 // min 140
 #define BIT_WIDTH ADC_BITWIDTH_12
 #define ADC_CHANNELS {ADC_CHANNEL_0};
 
+// Select one below
+// #define ATTENUATION_DB_0
+// #define ATTENUATION_DB_2_5
+// #define ATTENUATION_DB_6
+#define ATTENUATION_DB_11
 
 /* === Calculations === */
 
 #define VALUES_PER_CHUNK (FRAME_SIZE / SOC_ADC_DIGI_RESULT_BYTES)
 #define ADC_BUFFER_SIZE (VALUES_PER_CHUNK * ADC_BUFFER_CHUNKS)
 // #define DATA_BUFFER_SIZE (VALUES_PER_CHUNK * DATA_BUFFER_CHUNKS)
-#define SAMPLES_LIMIT (ADC_BUFFER_SIZE - VALUES_PER_CHUNK)
+#define SAMPLES_LIMIT (ADC_BUFFER_SIZE - (2 * VALUES_PER_CHUNK))
+
+#ifdef ATTENUATION_DB_0
+#define ATTENUATION ADC_ATTEN_DB_0
+#define ATTENUATION_V_MIN 0.1
+#define ATTENUATION_V_MAX 0.95
+#endif
+
+#ifdef ATTENUATION_DB_2_5
+#define ATTENUATION ADC_ATTEN_DB_2_5
+#define ATTENUATION_V_MIN 0.1
+#define ATTENUATION_V_MAX 1.25
+#endif
+
+#ifdef ATTENUATION_DB_6
+#define ATTENUATION ADC_ATTEN_DB_6
+#define ATTENUATION_V_MIN 0.15
+#define ATTENUATION_V_MAX 1.75
+#endif
+
+#ifdef ATTENUATION_DB_11
+#define ATTENUATION ADC_ATTEN_DB_11
+#define ATTENUATION_V_MIN 0.15
+#define ATTENUATION_V_MAX 2.45
+#endif
+
+#define ATTENUATION_V_DELTA (ATTENUATION_V_MAX - ATTENUATION_V_MIN)
 
 // Actual memory usage:
 // ADC_BUFFER_CHUNKS * (FRAME_SIZE / SOC_ADC_DIGI_RESULT_BYTES * 2 bytes + 8 bytes) => ADC_BUFFER_CHUNKS * (FRAME_SIZE bytes + 8 bytes)

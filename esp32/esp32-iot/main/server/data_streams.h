@@ -111,6 +111,28 @@ namespace server
         }
     };
 
+    class HttpStringBuffer : public rapidjson::StringBuffer {
+        size_t capacity;
+        httpd_req_t *req;
+
+        public:
+        HttpStringBuffer(httpd_req_t *req, size_t capacity) : rapidjson::StringBuffer(0, capacity), capacity(capacity), req(req) {}
+
+        void Reserve(size_t count) { 
+            size_t size = GetSize();
+            if (size > capacity + count) {
+                httpd_resp_send_chunk(req, GetString(), size);
+                Clear();
+            }
+            stack_.template Reserve<Ch>(count); 
+        }
+
+        void Finish() {
+            httpd_resp_send_chunk(req, GetString(), GetSize());
+            httpd_resp_send_chunk(req, nullptr, 0);
+        }
+    };
+
 } // namespace server
 
 #endif

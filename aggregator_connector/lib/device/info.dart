@@ -12,7 +12,7 @@ class DeviceInfoContext extends ChangeNotifier {
   DeviceInfoContext({required this.api});
 
   void update() async {
-    print("Update");
+
     HttpJsonResponse resp;
     try {
       resp = await api.get();
@@ -44,7 +44,6 @@ class DeviceInfo extends StatelessWidget {
           create: (_) => ctx,
           child: Consumer<DeviceInfoContext>(builder: tableBuilder),
         ));
-    ctx.update();
     return ret;
   }
 

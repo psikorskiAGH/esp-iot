@@ -93,6 +93,8 @@
         "nvs_flash.h": "c",
         "ap.c": "cpp",
         "includes.h": "c",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "errno.h": "c",
+        "esp_heap_caps.h": "c"
     }
 }

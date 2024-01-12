@@ -5,48 +5,113 @@ import 'package:flutter/material.dart';
 import 'config.dart';
 import 'data.dart';
 
-String oscIP = '192.168.1.107';
-// var client = HttpClient();
-final apiHandlers =
-    JsonApiHandlers(server: oscIP, port: 80, path: "/devices/oscilloscope");
+const Duration dataRefreshInterval = Duration(milliseconds: 1000);
 
 class Device extends StatelessWidget {
-  Device({super.key}) {
-    // apiHandlers.useWebSocket();
+  final JsonApiHandlers rootApiHandlers;
+  final String deviceName;
+
+  late final DeviceDataContext _deviceDataContext;
+  late final DeviceInfoContext _deviceInfoContext;
+  late final DeviceConfigContext _deviceConfigContext;
+
+  Device({required this.rootApiHandlers, required this.deviceName, super.key}) {
+    _deviceDataContext = DeviceDataContext(
+      api: JsonApi(
+          handlers: rootApiHandlers, subpath: "/devices/$deviceName/data"),
+    );
+
+    _deviceInfoContext = DeviceInfoContext(
+      api: JsonApi(handlers: rootApiHandlers, subpath: "/devices/$deviceName"),
+    );
+    _deviceInfoContext.update();
+
+    _deviceConfigContext = DeviceConfigContext(
+      api: JsonApi(
+          handlers: rootApiHandlers, subpath: "/devices/$deviceName/config"),
+    );
+    _deviceConfigContext.reload();
+
+    // broad = _buildBroad();
+    // narrow = _buildNarrow();
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget? mode;
     return Column(
-      // scrollDirection: Axis.vertical,
-      // shrinkWrap: true,
       children: [
-        DeviceInfo(
-          ctx: DeviceInfoContext(
-            api: JsonApi(handlers: apiHandlers, subpath: ""),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth > 800) {
+              // Changing is problematic; just reuse first build created
+              return mode ?? (mode = _buildBroad());
+            } else {
+              return mode ?? (mode = _buildNarrow());
+            }
+          },
+        ),
+        Container(
+          decoration: const BoxDecoration(
+            border: BorderDirectional(
+              bottom: BorderSide(
+                color: Color(0xFF888888),
+              ),
+            ),
           ),
         ),
-        Row(
-          children: <Widget>[
-            // Expanded(child: Center(child: oscChart)),
-            // const Expanded(child: Center(child: Text("Hi!")))
-            Expanded(
-              child: DeviceData(
-                ctx: DeviceDataContext(
-                  api: JsonApi(handlers: apiHandlers, subpath: "data"),
-                ),
-              ),
-            ),
-            Expanded(
-              child: DeviceConfig(
-                ctx: DeviceConfigContext(
-                  api: JsonApi(handlers: apiHandlers, subpath: "config"),
-                ),
-              ),
-            ),
-          ],
+      ],
+    );
+  }
+
+  Widget _buildBroad() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Column(
+            children: [
+              _buildDeviceInfo(),
+              _buildDeviceConfig(),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: _buildDeviceData(),
         ),
       ],
+    );
+  }
+
+  Widget _buildNarrow() {
+    return Column(
+      children: [
+        _buildDeviceInfo(),
+        _buildDeviceConfig(),
+        _buildDeviceData(),
+      ],
+    );
+  }
+
+  Widget _buildDeviceData() {
+    return DeviceData(
+      key: Key('$deviceName/data'),
+      ctx: _deviceDataContext,
+    );
+  }
+
+  Widget _buildDeviceInfo() {
+    return DeviceInfo(
+      key: Key('$deviceName/info'),
+      ctx: _deviceInfoContext,
+    );
+  }
+
+  Widget _buildDeviceConfig() {
+    return DeviceConfig(
+      key: Key('$deviceName/config'),
+      ctx: _deviceConfigContext,
     );
   }
 }

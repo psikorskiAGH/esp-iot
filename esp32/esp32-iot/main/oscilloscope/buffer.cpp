@@ -27,7 +27,7 @@ namespace oscilloscope
         is_running = true;
         gettimeofday(&start_time_struct, NULL);
         run_result.start_time = (int64_t)last_conversion_time.tv_sec * 1000000L + (int64_t)last_conversion_time.tv_usec;
-        adc_buffer.timestamps[ADC_BUFFER_CHUNKS-1] = run_result.start_time;
+        adc_buffer.timestamps[ADC_BUFFER_CHUNKS - 1] = run_result.start_time;
 #ifdef DEBUG_L2
         ESP_LOGI("adc_buf", "Started Buffer: is_running %u, start_time %lld", is_running, run_result.start_time);
 #endif
@@ -56,6 +56,7 @@ namespace oscilloscope
 #ifdef DEBUG_L2
     static int counter_1 = 0;
     static int counter_2 = 0;
+    static int counter_trigger_should_finish = 0;
 #endif
     void OscilloscopeBuffer::analyze_new_data(size_t i_from, size_t i_to)
     {
@@ -83,17 +84,25 @@ namespace oscilloscope
         case OscilloscopeModes::VALUE_TRIGGER:
             if (mode_trigger_data.should_finish)
             {
-                if (!(i_to < mode_trigger_data.finish_index && i_to >= run_result.first_index))
+#ifdef DEBUG_L2
+                ++counter_trigger_should_finish;
+#endif
+                if (i_to >= mode_trigger_data.finish_index && i_from <= mode_trigger_data.finish_index)
                 {
 #ifdef DEBUG_L2
-                    ESP_LOGI("adc_buf", "Trigger mode finished, first_index %u, length %u, start_time %lld",
-                             run_result.first_index, run_result.length, run_result.start_time);
+                    ESP_LOGI("adc_buf", "Trigger mode finished, curr_index %u, first_index %u, length %u, start_time %lld",
+                             adc_buffer.index, run_result.first_index, run_result.length, run_result.start_time);
+                    ESP_LOGI("adc_buf", "finish_index: %u, i_from %u, i_to %u", mode_trigger_data.finish_index, i_from, i_to);
+                    ESP_LOGI("adc_buf", "Sould finish exec count: %d", counter_trigger_should_finish);
+                    counter_trigger_should_finish = 0;
 #endif
                     finish();
                 }
             }
-            else if (mode_trigger_data.first_cycle) {
-                if (adc_buffer.index >= settings.samples_before) {
+            else if (mode_trigger_data.first_cycle)
+            {
+                if (adc_buffer.index >= settings.samples_before)
+                {
                     mode_trigger_data.first_cycle = false;
                 }
             }

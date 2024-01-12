@@ -36,7 +36,7 @@ namespace oscilloscope
         OscilloscopeModes mode = OscilloscopeModes::ONCE;
         size_t samples_before = SAMPLES_LIMIT / 2 - 1;
         size_t samples_after = SAMPLES_LIMIT / 2 - 1;
-        size_t samples_count = SAMPLES_LIMIT;
+        size_t samples_count = SAMPLES_LIMIT - 1;
         uint16_t trigger_threshold = 2048; // in raw values
         Edge trigger_edge = Edge::RISING;
     };

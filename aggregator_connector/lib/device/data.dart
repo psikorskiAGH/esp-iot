@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:aggregator_connector/device/data_field.dart';
-import 'package:flutter/widgets.dart';
+import 'package:aggregator_connector/translate.dart';
+import 'package:flutter/material.dart';
+import 'package:input_slider/input_slider.dart';
 import 'package:provider/provider.dart';
 
 import '../http_path.dart';
 import 'data_chart.dart';
-
-const Duration graphRefreshInterval = Duration(milliseconds: 1000);
 
 class DeviceDataContext extends ChangeNotifier {
   final JsonApi api;
@@ -16,15 +16,23 @@ class DeviceDataContext extends ChangeNotifier {
     {"type": "single", "name": "Loading...", "value": "", "unit": ""}
   ];
   int _updating = 0;
+  Timer? timer;
+  Duration _refreshInterval = const Duration(milliseconds: 1000);
+  bool _disposed = false;
 
-  DeviceDataContext({required this.api});
+  DeviceDataContext({
+    required this.api,
+    Duration refreshInterval = const Duration(milliseconds: 1000),
+  }) : _refreshInterval = refreshInterval {
+    setPeriodicUpdate(_refreshInterval);
+  }
+
   void update() async {
     if (_updating > 0) {
       dev.log("WARN: DeviceDataContext already updating.");
       return;
     }
     ++_updating;
-    print("Updating");
 
     try {
       final HttpJsonResponse resp;
@@ -46,34 +54,81 @@ class DeviceDataContext extends ChangeNotifier {
           "unit": ""
         });
       }
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     } finally {
       --_updating;
     }
+  }
+
+  void setPeriodicUpdate(Duration duration) {
+    timer?.cancel();
+    _refreshInterval = duration;
+    timer = Timer.periodic(duration, (timer) {
+      update();
+    });
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    timer?.cancel();
+    super.dispose();
   }
 }
 
 class DeviceData extends StatelessWidget {
   final DeviceDataContext ctx;
-  late final Timer timer;
-  final Map<String, DeviceChart> chartCache = {};
+  // final Map<String, DeviceChart> chartCache = {};
 
-  DeviceData({required this.ctx, super.key}) {
-    timer = Timer.periodic(graphRefreshInterval, (timer) {
-      ctx.update();
-    });
-  }
+  const DeviceData({required this.ctx, super.key});
 
   @override
   Widget build(BuildContext context) {
     final ret = Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ChangeNotifierProvider<DeviceDataContext>(
-          create: (_) => ctx,
-          child: Consumer<DeviceDataContext>(builder: tableBuilder),
+        child: Column(
+          children: [
+            _buildRefreshDelaySelector(),
+            Row(
+              children: [
+                ConnectionTypeSelector(
+                  ctx: ctx,
+                ),
+              ],
+            ),
+            ChangeNotifierProvider<DeviceDataContext>(
+              create: (_) => ctx,
+              child: Consumer<DeviceDataContext>(builder: tableBuilder),
+            ),
+          ],
         ));
-    ctx.update();
     return ret;
+  }
+
+  Row _buildRefreshDelaySelector() {
+    return Row(
+      children: [
+        const Expanded(
+          flex: 1,
+          child: Text("Refresh delay [s]"),
+        ),
+        Expanded(
+          flex: 3,
+          child: InputSlider(
+            defaultValue: ctx._refreshInterval.inMilliseconds.toDouble() / 1000,
+            onChange: (e) => null,
+            onChangeEnd: (v) {
+              ctx.setPeriodicUpdate(Duration(milliseconds: (v * 1000).round()));
+            },
+            min: 0.1,
+            max: 5,
+            division: 49,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget tableBuilder(
@@ -102,12 +157,29 @@ class DeviceData extends StatelessWidget {
     List<double> x;
     List<double> y = _parseValues(data["values"]);
     var timestamps = data["timestamps"];
+    final String xLabel;
+
     if (timestamps != null) {
-      final v = _parseValues(timestamps).map((e) => e / 1000);
+      final v = _parseValues(timestamps); // in [us]
       final offset = v.first;
-      x = List<double>.from(v.map((e) => e - offset)); // in [s]
+      final vRelative = v.map((e) => e - offset);
+      final lastVal = vRelative.last;
+      final int divider;
+
+      if (lastVal < 2000) {
+        xLabel = "Time [us]";
+        divider = 1;
+      } else if (lastVal < 2000000) {
+        xLabel = "Time [ms]";
+        divider = 1000;
+      } else {
+        xLabel = "Time [s]";
+        divider = 1000000;
+      }
+      x = List<double>.from(vRelative.map((e) => e / divider));
     } else {
       x = List<double>.generate(y.length, (i) => i + 1);
+      xLabel = "Indexes";
     }
 
     String name = data["name"];
@@ -116,14 +188,12 @@ class DeviceData extends StatelessWidget {
       y: y,
       yMin: data["min"]?.toDouble(),
       yMax: data["max"]?.toDouble(),
+      title: tr(name),
+      xLabel: xLabel,
+      yLabel: "Values [${data["unit"]}]",
     );
 
-    return Column(
-      children: [
-        Text(name),
-        chart,
-      ],
-    );
+    return chart;
   }
 
   List<double> _parseValues(List<dynamic> valuesData) {
@@ -142,5 +212,56 @@ class DeviceData extends StatelessWidget {
       }
     }
     return out;
+  }
+}
+
+class ConnectionTypeSelector extends StatefulWidget {
+  const ConnectionTypeSelector({
+    super.key,
+    required this.ctx,
+  });
+
+  final DeviceDataContext ctx;
+
+  @override
+  State<StatefulWidget> createState() {
+    return _ConnectionTypeSelector();
+  }
+}
+
+class _ConnectionTypeSelector extends State<ConnectionTypeSelector> {
+  String selectedValue = 'http';
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButton<String>(
+      style: const TextStyle(color: Colors.black),
+      value: selectedValue,
+      items: const [
+        DropdownMenuItem<String>(
+          value: 'http',
+          child: Text("Use HTTP"),
+        ),
+        DropdownMenuItem<String>(
+          value: 'wss',
+          child: Text("Use WebSocket"),
+        ),
+      ],
+      onChanged: (value) {
+        switch (value) {
+          case 'http':
+            widget.ctx.api.handlers.useHttp();
+            break;
+          case 'wss':
+            widget.ctx.api.handlers.useWebSocket();
+            break;
+          default:
+            break;
+        }
+        setState(() {
+          selectedValue = value!;
+        });
+      },
+    );
   }
 }
