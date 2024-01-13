@@ -6,19 +6,22 @@ namespace oscilloscope
     TaskHandle_t xHandle_adc_print = NULL;
     adc_continuous_handle_t adc_continuous_handle = NULL;
     adc_continuous_config_t adc_cfg = {
-            .pattern_num = 0,
-            .adc_pattern = NULL,
-            .sample_freq_hz = SAMPLE_FREQ,
-            .conv_mode = ADC_CONV_SINGLE_UNIT_1,
-            .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
-        };
-    
-    struct {
+        .pattern_num = 0,
+        .adc_pattern = NULL,
+        .sample_freq_hz = SAMPLE_FREQ,
+        .conv_mode = ADC_CONV_SINGLE_UNIT_1,
+        .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
+    };
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {};
+
+    struct
+    {
         bool config_reload = false;
         SemaphoreHandle_t config_reloaded = NULL;
     } xSemaphore_adc;
 
-    void adc_external_config_reload() {
+    void adc_external_config_reload()
+    {
         xSemaphore_adc.config_reload = true;
         xSemaphoreTake(xSemaphore_adc.config_reloaded, portMAX_DELAY);
     }
@@ -32,8 +35,8 @@ namespace oscilloscope
         return (mustYield == pdTRUE);
     };
 
-    void continuous_adc_reconfig() {
-
+    void continuous_adc_reconfig()
+    {
     }
 
     void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
@@ -48,16 +51,15 @@ namespace oscilloscope
         };
         ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
-
         adc_cfg.pattern_num = channel_num;
 
-        adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX];
         for (int i = 0; i < channel_num; i++)
         {
-            adc_pattern[i] = {.atten = ATTENUATION,
-                              .channel = (uint8_t)(channel[i] & 0x7),
-                              .unit = ADC_UNIT_1,
-                              .bit_width = BIT_WIDTH,
+            adc_pattern[i] = {
+                .atten = ATTENUATION,
+                .channel = (uint8_t)(channel[i] & 0x7),
+                .unit = ADC_UNIT_1,
+                .bit_width = BIT_WIDTH,
             };
         }
         adc_cfg.adc_pattern = adc_pattern;
@@ -111,7 +113,8 @@ namespace oscilloscope
                     vTaskDelay(1);
 #endif
                 }
-                if (xSemaphore_adc.config_reload) {
+                if (xSemaphore_adc.config_reload)
+                {
                     ESP_ERROR_CHECK(adc_continuous_stop(adc_continuous_handle));
                     adc_cfg.adc_pattern[0].bit_width = BIT_WIDTH; // TODO: This is a bug
                     ESP_ERROR_CHECK(adc_continuous_config(adc_continuous_handle, &adc_cfg));
@@ -119,7 +122,7 @@ namespace oscilloscope
                     xSemaphore_adc.config_reload = false;
                     xSemaphoreGive(xSemaphore_adc.config_reloaded);
                 }
-                
+
                 if (ret == ESP_ERR_TIMEOUT)
                 {
                     // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data

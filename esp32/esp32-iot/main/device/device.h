@@ -56,11 +56,8 @@ namespace device
         ~Device();
         virtual bool get_response_data_fields(DeviceDataResponse *response) = 0;
 
-        virtual void init_config()
-        {
-            printf("Device::init_config");
-        };
-        virtual void on_config_update() {};
+        virtual void init_config(){};
+        virtual void on_config_update(){};
 
         api::Response *GET();
     };

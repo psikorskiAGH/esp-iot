@@ -545,7 +545,7 @@ CONFIG_ADC_CALI_EFUSE_VREF_ENABLE=y
 CONFIG_ADC_CALI_LUT_ENABLE=y
 # end of ADC Calibration Configurations
 
-CONFIG_ADC_DISABLE_DAC_OUTPUT=y
+# CONFIG_ADC_DISABLE_DAC_OUTPUT is not set
 # end of ADC and ADC Calibration
 
 #

@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:http/http.dart';
 
 class HttpJsonResponse {
   final dynamic jsonValue;
@@ -17,10 +17,14 @@ class HttpJsonResponse {
     }
   }
 
-  static Future<HttpJsonResponse> fromHttpClientResponse(
-      HttpClientResponse raw) async {
-    final str = await raw.transform(utf8.decoder).join();
-    return HttpJsonResponse(jsonDecode(str));
+  // static Future<HttpJsonResponse> fromHttpClientResponse(
+  //     HttpClientResponse raw) async {
+  //   final str = await raw.transform(utf8.decoder).join();
+  //   return HttpJsonResponse.fromString(str);
+  // }
+
+  static HttpJsonResponse fromString(String data) {
+    return HttpJsonResponse(jsonDecode(data));
   }
 
   Map<dynamic, dynamic> asMap() {
@@ -57,7 +61,6 @@ class JsonApiHandlers {
   })  : _path = path,
         _port = port,
         _server = server {
-
     /* _wssAwaitingRequestsTimer = */
     Timer.periodic(const Duration(seconds: 1), (timer) {
       _wssAwaitingRequestTimeouts();
@@ -96,7 +99,6 @@ class JsonApiHandlers {
   // }
 
   void _wssStreamHandler(dynamic rawData) {
-
     final dynamic data;
     try {
       data = jsonDecode(rawData);
@@ -141,7 +143,6 @@ class JsonApiHandlers {
         (completer, DateTime.now().add(_timeoutDuration));
     _wssClient!.sink.add(rawData);
 
-
     return completer.future;
   }
 
@@ -162,57 +163,59 @@ class JsonApiHandlers {
 
   /* === HTTP === */
 
-  static final _clientHttp = HttpClient();
+  static final _clientHttp = Client();
 
   Future<HttpJsonResponse> _httpGet({String subpath = ''}) async {
-    HttpClientRequest req;
+    Response resp;
     try {
-      req = await _clientHttp.get(_server, _port, _path + subpath);
+      resp = await _clientHttp.get(
+        Uri(scheme: 'http', host: _server, port: _port, path: _path + subpath),
+        headers: {"Accept": "application/json"},
+      );
     } catch (e) {
       rethrow;
     }
-    req.headers.add(HttpHeaders.acceptHeader, "application/json");
-    return await HttpJsonResponse.fromHttpClientResponse(await req.close());
+    resp.headers["accept"] = "application/json";
+    return HttpJsonResponse.fromString(resp.body);
   }
 
   Future<HttpJsonResponse> _httpPost(dynamic data,
       {String subpath = ''}) async {
     final strData = json.encode(data);
-    HttpClientRequest req;
+    Response resp;
     try {
-      req = await _clientHttp.post(_server, _port, _path + subpath);
+      resp = await _clientHttp.post(
+        Uri(scheme: 'http', host: _server, port: _port, path: _path + subpath),
+        body: strData,
+        headers: {"Content-type": "application/json"},
+      );
     } catch (e) {
       rethrow;
     }
-    req.headers.chunkedTransferEncoding = false;
-    req.headers.contentType = ContentType.json;
-    req.headers.contentLength = strData.length;
-    req.bufferOutput = false;
-    req.write(strData);
+    // req.headers.chunkedTransferEncoding = false;
+    // req.headers.contentType = ContentType.json;
+    // req.headers.contentLength = strData.length;
+    // req.bufferOutput = false;
+    // req.write(strData);
 
-    final resp = await req.close();
-    return await HttpJsonResponse.fromHttpClientResponse(resp);
+    return HttpJsonResponse.fromString(resp.body);
   }
 
   /* === User facing methods === */
 
   Future<void> useWebSocket({String wssSubpath = '/websocket'}) {
-    print("Using webSocket");
     final WebSocketChannel channel;
     try {
       channel = WebSocketChannel.connect(Uri.parse("ws://$_server$wssSubpath"));
     } catch (e) {
       // In case of failure, retry
 
-
       return useWebSocket(wssSubpath: wssSubpath);
     }
 
     // In case of failure, retry
     channel.sink.done.then((value) {
-
       if (_wssClient == channel) {
-
         useWebSocket(wssSubpath: wssSubpath);
       }
     });
@@ -225,11 +228,10 @@ class JsonApiHandlers {
   }
 
   void useHttp() {
-    print("Using HTTP");
     _wssClient = null;
   }
 
-  bool isUsingWebSocket() => _wssClient != null; 
+  bool isUsingWebSocket() => _wssClient != null;
 
   Future<HttpJsonResponse> get({String subpath = ''}) {
     if (_wssClient == null) {
@@ -240,7 +242,6 @@ class JsonApiHandlers {
   }
 
   Future<HttpJsonResponse> post(dynamic data, {String subpath = ''}) {
-
     if (_wssClient == null) {
       return _httpPost(data, subpath: subpath);
     } else {

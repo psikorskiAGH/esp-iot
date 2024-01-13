@@ -102,9 +102,9 @@ namespace device
     {
     private:
         size_t index_staged;
+        std::vector<std::string> const enum_values;
 
     public:
-        std::vector<std::string> const enum_values;
         size_t index;
         EnumConfigField(std::string name, std::vector<std::string> enum_values, size_t curr_index) : BaseConfigField(name, "enum"), enum_values(enum_values), index(curr_index){};
         rapidjson::Value render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc);

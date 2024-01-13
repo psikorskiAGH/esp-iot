@@ -13,9 +13,9 @@ double mod(double value, double divider) {
   return rest * divider;
 }
 
-class ConfigDataErrorRow extends StatelessWidget {
+class DeviceConfigErrorRow extends StatelessWidget {
   final String description;
-  const ConfigDataErrorRow({LocalKey? key, required this.description})
+  const DeviceConfigErrorRow({LocalKey? key, required this.description})
       : super(key: key);
 
   @override
@@ -35,10 +35,10 @@ class ConfigDataErrorRow extends StatelessWidget {
   }
 }
 
-class ConfigDataNumberRow extends StatelessWidget {
+class DeviceConfigNumberRow extends StatelessWidget {
   final DeviceConfigContext ctx;
   final Map<String, dynamic> data;
-  const ConfigDataNumberRow(
+  const DeviceConfigNumberRow(
       {LocalKey? key, required this.data, required this.ctx})
       : super(key: key);
 
@@ -96,10 +96,10 @@ class ConfigDataNumberRow extends StatelessWidget {
   }
 }
 
-class ConfigDataEnumRow extends StatelessWidget {
+class DeviceConfigEnumRow extends StatelessWidget {
   final DeviceConfigContext ctx;
   final Map<String, dynamic> data;
-  const ConfigDataEnumRow(
+  const DeviceConfigEnumRow(
       {LocalKey? key, required this.data, required this.ctx})
       : super(key: key);
 

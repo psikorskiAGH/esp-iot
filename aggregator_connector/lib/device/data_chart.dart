@@ -43,7 +43,7 @@ class DeviceChart extends StatelessWidget {
           lineBarsData: [
             LineChartBarData(
                 spots: points,
-                dotData: FlDotData(
+                dotData: const FlDotData(
                   show: false,
                 )),
           ],
@@ -52,7 +52,7 @@ class DeviceChart extends StatelessWidget {
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               axisNameWidget: Text(yLabel),
-              sideTitles: SideTitles(
+              sideTitles: const SideTitles(
                 showTitles: true,
                 reservedSize: 32,
                 // getTitlesWidget: (value, meta) => Text("y-axis"),
@@ -65,7 +65,7 @@ class DeviceChart extends StatelessWidget {
             ),
             bottomTitles: AxisTitles(
               axisNameWidget: Text(xLabel),
-              sideTitles: SideTitles(
+              sideTitles: const SideTitles(
                 showTitles: true,
                 reservedSize: 24,
                 // getTitlesWidget: (value, meta) => Text("y-axis"),
@@ -78,8 +78,8 @@ class DeviceChart extends StatelessWidget {
             ),
           ),
         ),
-        swapAnimationDuration: const Duration(milliseconds: 1), // Optional
-        swapAnimationCurve: Curves.linear, // Optional
+        duration: const Duration(milliseconds: 1), // Optional
+        curve: Curves.linear, // Optional
       ),
     );
   }

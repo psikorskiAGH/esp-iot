@@ -37,6 +37,20 @@
 #include <lwip/err.h>
 #include <lwip/sys.h>
 
+
+#include <inttypes.h>
+#include <math.h>
+#include <soc/dac_channel.h>
+#include <esp_adc/adc_oneshot.h>
+#include <esp_check.h>
+#include <driver/dac_continuous.h>
+
+#include <assert.h>
+#include <freertos/queue.h>
+#include <driver/gpio.h>
+#include <driver/gptimer.h>
+#include <driver/dac_oneshot.h>
+
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -70,7 +84,7 @@
 #define ADC_BUFFER_CHUNKS 10
 
 // ADC directly related
-#define SAMPLE_FREQ (200 * 1000)
+#define SAMPLE_FREQ (40 * 1000)
 #define FRAME_SIZE 256 // min 140
 #define BIT_WIDTH ADC_BITWIDTH_12
 #define ADC_CHANNELS {ADC_CHANNEL_0};

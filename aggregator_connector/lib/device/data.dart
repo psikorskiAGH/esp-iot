@@ -33,6 +33,7 @@ class DeviceDataContext extends ChangeNotifier {
       return;
     }
     ++_updating;
+    dev.log("INFO: DeviceDataContext updating.");
 
     try {
       final HttpJsonResponse resp;
@@ -124,7 +125,7 @@ class DeviceData extends StatelessWidget {
             },
             min: 0.1,
             max: 5,
-            division: 49,
+            division: 98,
           ),
         ),
       ],
@@ -200,10 +201,10 @@ class DeviceData extends StatelessWidget {
     List<double> out = [];
     for (dynamic v in valuesData) {
       switch (v.runtimeType) {
-        case double:
+        case const (double):
           out.add(v as double);
           break;
-        case int:
+        case const (int):
           out.add((v as int).toDouble());
           break;
         default:

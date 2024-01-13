@@ -34,7 +34,7 @@ class DeviceConfigContext extends ChangeNotifier {
       await api.post([data]);
     } catch (e) {
       widgets.clear();
-      postErrors.add(ConfigDataErrorRow(
+      postErrors.add(DeviceConfigErrorRow(
         description: "Error: $e",
       ));
       notifyListeners();
@@ -57,7 +57,7 @@ class DeviceConfigContext extends ChangeNotifier {
       resp = await api.get();
     } catch (e) {
       widgets.clear();
-      widgets.add(ConfigDataErrorRow(description: "Error: $e"));
+      widgets.add(DeviceConfigErrorRow(description: "Error: $e"));
       notifyListeners();
       --_reloading;
       return reload();
@@ -67,11 +67,11 @@ class DeviceConfigContext extends ChangeNotifier {
     for (var el in respData) {
       switch (el["type"]) {
         case "enum":
-          widgets.add(ConfigDataEnumRow(data: el, ctx: this));
+          widgets.add(DeviceConfigEnumRow(data: el, ctx: this));
           break;
         case "integer":
         case "float":
-          widgets.add(ConfigDataNumberRow(
+          widgets.add(DeviceConfigNumberRow(
             data: el,
             ctx: this,
           ));

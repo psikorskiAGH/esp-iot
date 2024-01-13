@@ -1,10 +1,41 @@
 import 'package:aggregator_connector/device/server.dart';
 import 'package:flutter/material.dart';
 import 'package:aggregator_connector/http_path.dart';
+import 'package:flutter/foundation.dart';
 
-import 'device/device.dart';
+import 'package:window_manager/window_manager.dart';
 
-void main() {
+// ignore: constant_identifier_names
+const String APP_TITLE = "Device Viewer";
+
+void main() async {
+  // Source: https://www.togaware.com/linux/survivor/flutter-desktop-app-window-manager.html#flutter-desktop-app-window-manager
+
+  print(defaultTargetPlatform);
+  bool isDesktop = [TargetPlatform.linux, TargetPlatform.macOS, TargetPlatform.windows].contains(defaultTargetPlatform);
+
+  if (isDesktop && !kIsWeb) {
+
+    WidgetsFlutterBinding.ensureInitialized();
+
+    await windowManager.ensureInitialized();
+
+    WindowOptions windowOptions = const WindowOptions(
+      alwaysOnTop: true,
+      // size: Size(450, 700),
+      title: APP_TITLE,
+      center: true,
+      // backgroundColor: Colors.transparent,
+      // skipTaskbar: false,
+      // titleBarStyle: TitleBarStyle.hidden,
+    );
+
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      await windowManager.setAlwaysOnTop(false);
+    });
+  }
   runApp(const MainApp());
 }
 
@@ -58,7 +89,7 @@ class _MainApp extends State<MainApp> {
           title: _getForm(),
         ),
       ),
-      title: "Device Viewer",
+      title: APP_TITLE,
     );
   }
 

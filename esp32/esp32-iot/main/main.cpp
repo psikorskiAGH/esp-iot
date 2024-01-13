@@ -14,6 +14,8 @@
 #include "server/server.cpp"
 #include "device/device.h"
 #include "oscilloscope/oscilloscope.h"
+#include "oscillator/dac.h"
+#include "clock/clock.h"
 
 #if WIFI_MODE == WIFI_STATION_MODE
 #include "wifi/station.c"
@@ -27,6 +29,8 @@ extern "C"
     {
         printf("Hello world!\n");
 
+        oscillator::app_main();
+
 #if WIFI_MODE == WIFI_STATION_MODE
         wifi_station_main();
 #else
@@ -36,6 +40,9 @@ extern "C"
 
         oscilloscope::Oscilloscope* osc = new oscilloscope::Oscilloscope();
         server::devices.add_device(osc);
+
+        // testclock::Clock* clk = new testclock::Clock();
+        // server::devices.add_device(clk);
 
         while (true)
         {

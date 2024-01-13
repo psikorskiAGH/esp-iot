@@ -121,6 +121,9 @@ namespace oscilloscope
                             run_result.length = settings.samples_count;
                             mode_trigger_data.finish_index = (i + settings.samples_after + 1) % ADC_BUFFER_SIZE;
                             mode_trigger_data.should_finish = true;
+                            if (i_to >= mode_trigger_data.finish_index && i_from <= mode_trigger_data.finish_index)  {
+                                finish();
+                            }
                             break;
                         }
                         prev_value = current_value;
@@ -136,7 +139,7 @@ namespace oscilloscope
                             // middle_index = i
                             run_result.first_index = (i - settings.samples_before + ADC_BUFFER_SIZE) % ADC_BUFFER_SIZE;
                             run_result.length = settings.samples_count;
-                            mode_trigger_data.finish_index = (i + settings.samples_after + 1) % ADC_BUFFER_SIZE;
+                            mode_trigger_data.finish_index = (i + settings.samples_after) % ADC_BUFFER_SIZE;
                             mode_trigger_data.should_finish = true;
                             break;
                         }
