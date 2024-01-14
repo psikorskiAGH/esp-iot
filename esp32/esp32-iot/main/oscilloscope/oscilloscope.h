@@ -19,7 +19,7 @@ namespace oscilloscope
             device::DoubleConfigField* sample_freq;
             device::IntConfigField* samples_before;
             device::IntConfigField* samples_after;
-            device::IntConfigField* trigger_threshold;
+            device::DoubleConfigField* trigger_threshold;
             device::EnumConfigField* trigger_edge;
         } config_fields;
 

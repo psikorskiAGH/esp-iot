@@ -36,11 +36,15 @@ namespace oscilloscope
                 "samples",
                 oscilloscope_data.get_samples_after(),
                 {.min = 0, .max = SAMPLES_LIMIT / 2 - 1, .step = 1}),
-            .trigger_threshold = new device::IntConfigField(
+            .trigger_threshold = new device::DoubleConfigField(
                 "trigger_threshold",
-                "raw",
-                oscilloscope_data.get_trigger_treshold(),
-                {.min = 0, .max = 4095, .step = 1}),
+                "V",
+                round(
+                    (
+                        ((double)oscilloscope_data.get_trigger_treshold()) / 4095.0 * ATTENUATION_V_DELTA + ATTENUATION_V_MIN
+                    ) * 100
+                ) / 100,
+                {.min = ATTENUATION_V_MIN, .max = ATTENUATION_V_MAX, .step = 0.01}),
             .trigger_edge = new device::EnumConfigField(
                 "trigger_edge",
                 {"rising", "falling"},
@@ -76,6 +80,9 @@ namespace oscilloscope
     }
     void Oscilloscope::on_config_update()
     {
+#ifdef DEBUG_L1
+        ESP_LOGI("OSC", "Updating config");
+#endif
         if (!oscilloscope_data.set_mode((OscilloscopeModes)config_fields.mode->index))
             ESP_LOGE("OSC", "Couldn't set mode - unexpected error.");
         if (!oscilloscope_data.set_samples_range(
@@ -83,7 +90,7 @@ namespace oscilloscope
                 config_fields.samples_after->value))
             ESP_LOGE("OSC", "Couldn't set samples range - unexpected error.");
         if (!oscilloscope_data.set_trigger(
-                config_fields.trigger_threshold->value,
+                (uint16_t)((config_fields.trigger_threshold->value - ATTENUATION_V_MIN) / ATTENUATION_V_DELTA * 4095),
                 (Edge)config_fields.trigger_edge->index))
             ESP_LOGE("OSC", "Couldn't set trigger - unexpected error.");
         uint32_t new_sample_freq = (uint32_t)(config_fields.sample_freq->value * 1000);

@@ -7,7 +7,7 @@ double mod(double value, double divider) {
   // '%' does not work with double values, but this works!
   final double divResult = value / divider;
   final double rest = divResult - divResult.floorToDouble();
-  if (rest > 0.999999) {
+  if (rest > 0.999999 || rest < 0.000001) {
     return 0;
   }
   return rest * divider;
@@ -51,7 +51,7 @@ class DeviceConfigNumberRow extends StatelessWidget {
     final double vMax = constrains["max"].toDouble() -
         mod(constrains["max"].toDouble() - vMin, vStep);
     final int vDivisions = ((vMax - vMin) / vStep).floor();
-
+    
     if (value < vMin || value > vMax || mod(value - vMin, vStep) != 0) {
       return Row(
         children: [
@@ -83,8 +83,8 @@ class DeviceConfigNumberRow extends StatelessWidget {
             defaultValue: value,
             onChange: (e) => null,
             onChangeEnd: (v) {
-
-              ctx.post(name: data["name"], unit: data["unit"], value: v);
+              double val = (v * 100000).roundToDouble() / 100000; // Double imprecision
+              ctx.post(name: data["name"], unit: data["unit"], value: val);
             },
             min: vMin,
             max: vMax,

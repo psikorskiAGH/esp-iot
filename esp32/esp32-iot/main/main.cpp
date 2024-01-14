@@ -41,8 +41,8 @@ extern "C"
         oscilloscope::Oscilloscope* osc = new oscilloscope::Oscilloscope();
         server::devices.add_device(osc);
 
-        // testclock::Clock* clk = new testclock::Clock();
-        // server::devices.add_device(clk);
+        testclock::Clock* clk = new testclock::Clock();
+        server::devices.add_device(clk);
 
         while (true)
         {

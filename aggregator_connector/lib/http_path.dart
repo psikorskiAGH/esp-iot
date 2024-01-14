@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -32,7 +31,8 @@ class HttpJsonResponse {
       return jsonValue;
     } else {
       throw Exception(
-          "JSON data is not of Map type (got ${jsonValue.runtimeType}): $jsonValue");
+        "JSON data is not of Map type (got ${jsonValue.runtimeType}): $jsonValue",
+      );
     }
   }
 
@@ -41,7 +41,8 @@ class HttpJsonResponse {
       return jsonValue;
     } else {
       throw Exception(
-          "JSON data is not of List type (got ${jsonValue.runtimeType}): $jsonValue");
+        "JSON data is not of List type (got ${jsonValue.runtimeType}): $jsonValue",
+      );
     }
   }
 }
@@ -209,7 +210,6 @@ class JsonApiHandlers {
       channel = WebSocketChannel.connect(Uri.parse("ws://$_server$wssSubpath"));
     } catch (e) {
       // In case of failure, retry
-
       return useWebSocket(wssSubpath: wssSubpath);
     }
 

@@ -6,11 +6,11 @@ namespace device
     {
         double divResult = value / divider;
         double rest = divResult - floor(divResult);
-        if (rest > 0.999999)  // Getting rid of double imprecision
+        if (rest > 0.999999 || rest < 0.000001) // Getting rid of double imprecision
         {
             return 0;
         }
-        return (rest) * divider;
+        return (rest)*divider;
     }
 
     rapidjson::Value BaseConfigField::render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc)
@@ -83,7 +83,6 @@ namespace device
         return value <= max && value >= min && d_mod(value - min, step) == 0;
     }
 
-
     template <typename T>
     rapidjson::Value number_constrains_t<T>::render(RAPIDJSON_DEFAULT_ALLOCATOR &alloc)
     {
@@ -96,7 +95,7 @@ namespace device
 
     /* === IntConfigField === */
 
-    template  class NumberConfigField<int64_t>;
+    template class NumberConfigField<int64_t>;
     // template class number_constrains_t<int64_t>;
 
     bool IntConfigField::get_value_from_field(rapidjson::Value const &field, int64_t *read_value)
@@ -126,9 +125,12 @@ namespace device
 
     bool DoubleConfigField::get_value_from_field(rapidjson::Value const &field, double *read_value)
     {
-        if (!field.IsDouble())
+        if (field.IsDouble())
+            (*read_value) = field.GetDouble();
+        else if (field.IsInt64())
+            (*read_value) = (double)field.GetInt64();
+        else
             return false;
-        (*read_value) = field.GetDouble();
         return true;
     }
 
